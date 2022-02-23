@@ -5,14 +5,14 @@ import {isLike} from "./like";
 export const PromiseAllRejectEarly = Symbol.for("@virtualstate/promise/all/rejectEarly");
 
 export interface PromiseContext {
-    [PromiseAllRejectEarly]?: boolean
+    [PromiseAllRejectEarly]?: unknown
 }
 
-export function all<T>(this: PromiseContext | void, ...promises: PromiseArgs<T>): TheAsyncThing<T[]> {
+export function all<T>(this: unknown, ...promises: PromiseArgs<T>): TheAsyncThing<T[]> {
     return anAsyncThing(allGenerator.call(this, ...promises));
 }
 
-export async function *allGenerator<T>(this: PromiseContext | void, ...promises: PromiseArgs<T>): AsyncIterable<T[]> {
+export async function *allGenerator<T>(this: unknown, ...promises: PromiseArgs<T>): AsyncIterable<T[]> {
     let rejected;
     for await (const status of allSettledGenerator(...promises)) {
         rejected = status.filter(isPromiseRejectedResult);
