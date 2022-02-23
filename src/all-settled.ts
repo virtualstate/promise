@@ -1,20 +1,6 @@
 import {anAsyncThing, TheAsyncThing} from "./the-thing";
 import {union} from "@virtualstate/union";
 
-/*
-interface PromiseFulfilledResult<T> {
-    status: "fulfilled";
-    value: T;
-}
-
-interface PromiseRejectedResult {
-    status: "rejected";
-    reason: any;
-}
-
-type PromiseSettledResult<T> = PromiseFulfilledResult<T> | PromiseRejectedResult;
- */
-
 export function allSettled<T>(...promises: PromiseArgs<T>): TheAsyncThing<PromiseSettledResult<T>[]> {
     return anAsyncThing(allSettledGenerator(...promises));
 }
