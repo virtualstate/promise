@@ -1,3 +1,4 @@
+import "./readme";
 import {Promise} from "../index";
 import {inputs} from "./input";
 

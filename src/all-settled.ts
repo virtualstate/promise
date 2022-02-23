@@ -6,15 +6,14 @@ export function allSettled<T>(...promises: PromiseArgs<T>): TheAsyncThing<Promis
 }
 
 export async function *allSettledGenerator<T>(...promises: PromiseArgs<T>): AsyncIterable<PromiseSettledResult<T>[]> {
-    const input = promises.flatMap(value => value);
     type KnownPromiseResult = [number, PromiseSettledResult<T>];
-    const knownPromises = [...input].map(async function *(promise, index): AsyncIterable<KnownPromiseResult> {
-        try {
-            const value = await promise;
-            yield [index, { value, status: "fulfilled" }];
-        } catch (reason) {
-            yield [index, { reason, status: "rejected" }];
-        }
+    const input = promises.flatMap(value => value).map((promise, index) => (
+        promise
+            .then((value): KnownPromiseResult  => [index, { value, status: "fulfilled" }])
+            .catch((reason): KnownPromiseResult => [index, { reason, status: "rejected" }])
+    ));
+    const knownPromises = [...input].map(async function *(promise) {
+        yield promise;
     });
     const results = Array.from<PromiseSettledResult<T>>({ length: input.length });
     for await (const state of union(knownPromises)) {

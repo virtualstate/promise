@@ -22,7 +22,7 @@ export async function *allGenerator<T>(this: unknown, ...promises: PromiseArgs<T
         if (rejected.length) continue; // Wait until we have accumulated all rejected
         yield status.map(status => status?.status === "fulfilled" ? status.value : undefined);
     }
-    if (rejected.length) {
+    if (rejected?.length) {
         throw aggregateError(rejected);
     }
 
