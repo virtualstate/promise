@@ -43,8 +43,10 @@
   "homepage": "https://github.com/virtualstate/promise#readme",
   "author": "Fabian Cook <hello@fabiancook.dev>",
   "license": "MIT",
+  "peerDependencies": {
+    "@virtualstate/union": "*"
+  },
   "dependencies": {
-    "@virtualstate/union": "^2.46.0"
   },
   "devDependencies": {
     "@babel/cli": "^7.15.4",
