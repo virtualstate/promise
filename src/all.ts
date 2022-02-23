@@ -35,9 +35,7 @@ export async function *allGenerator<T>(this: unknown, ...promises: PromiseArgs<T
             return rejected[0].reason;
         } else {
             const reasons = rejected.map(({ reason }) => reason);
-            const error = reasons.find((reason): reason is Error => reason instanceof Error);
-            const message = error ? undefined : reasons.find((reason): reason is string => typeof reason === "string");
-            return new AggregateError(reasons, error?.message ?? message);
+            return new AggregateError(reasons);
         }
     }
 }

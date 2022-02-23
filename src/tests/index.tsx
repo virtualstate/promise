@@ -1,6 +1,7 @@
 import "./readme";
-import {Promise} from "../index";
+import {Promise, PromiseAllRejectEarly} from "../index";
 import {inputs} from "./input";
+import {GlobalPromise} from "./global";
 
 for (const input of inputs) {
     const getInput = () => input.map(value => typeof value === "function" ? value() : value);
@@ -26,3 +27,14 @@ for (const input of inputs) {
         console.log({ allPromiseReason });
     }
 }
+
+await Promise.all.call({
+    [PromiseAllRejectEarly]: true
+}, (async () => {
+    throw new Error()
+})()).catch((reason: unknown) => reason);
+
+await Promise.all(
+    GlobalPromise.reject("message"),
+    GlobalPromise.reject("message"),
+).catch((reason: unknown) => reason);
