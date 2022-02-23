@@ -43,7 +43,9 @@
   "homepage": "https://github.com/virtualstate/promise#readme",
   "author": "Fabian Cook <hello@fabiancook.dev>",
   "license": "MIT",
-  "dependencies": {},
+  "dependencies": {
+    "@virtualstate/union": "^2.46.0"
+  },
   "devDependencies": {
     "@babel/cli": "^7.15.4",
     "@babel/core": "^7.15.4",
@@ -63,7 +65,6 @@
     "@virtualstate/fringe": "^2.46.1",
     "@virtualstate/hooks": "^2.46.0",
     "@virtualstate/hooks-extended": "^2.46.0",
-    "@virtualstate/union": "^2.46.0",
     "@virtualstate/x": "^2.46.0",
     "c8": "^7.10.0",
     "chance": "^1.1.8",
