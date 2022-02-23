@@ -1,4 +1,4 @@
-import * as Promise from "../promise";
+import {Promise} from "../index";
 import {inputs} from "./input";
 
 for (const input of inputs) {

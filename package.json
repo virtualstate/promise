@@ -4,11 +4,34 @@
   "main": "./esnext/index.js",
   "module": "./esnext/index.js",
   "types": "./esnext/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "*": [
+        "./esnext/index.d.ts"
+      ],
+      "all": [
+        "./esnext/all.d.ts"
+      ],
+      "all-settled": [
+        "./esnext/all-settled.d.ts"
+      ],
+      "the-thing": [
+        "./esnext/the-thing.d.ts"
+      ],
+      "tests": [
+        "./esnext/tests/index.d.ts"
+      ]
+    }
+  },
   "type": "module",
   "sideEffects": false,
   "keywords": [],
   "exports": {
-    ".": "./esnext/index.js"
+    ".": "./esnext/index.js",
+    "./all": "./esnext/all.js",
+    "./all-settled": "./esnext/all-settled.js",
+    "./the-thing": "./esnext/the-thing.js",
+    "./tests": "./esnext/tests/index.js"
   },
   "repository": {
     "type": "git",
