@@ -1,7 +1,10 @@
-import "./readme";
 import {Promise, PromiseAllRejectEarly} from "../index";
-import {inputs} from "./input";
 import {GlobalPromise} from "./global";
+
+await import("./readme");
+await import("./typed");
+
+const { inputs } = await import("./input");
 
 for (const input of inputs) {
     const getInput = () => input.map(value => typeof value === "function" ? value() : value);

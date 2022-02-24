@@ -1,4 +1,5 @@
-
-export function sleep(timeout: number, arg?: unknown) {
-    return new Promise(resolve => setTimeout(resolve, timeout, arg ?? `Slept ${timeout} ms`));
+export function sleep<T>(timeout: number, arg: T): Promise<T>;
+export function sleep(timeout: number): Promise<void>;
+export function sleep<T>(timeout: number, arg?: T) {
+    return new Promise<T>(resolve => setTimeout(() => resolve(arg), timeout, arg ?? `Slept ${timeout} ms`));
 }

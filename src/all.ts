@@ -8,11 +8,15 @@ export interface PromiseContext {
     [PromiseAllRejectEarly]?: unknown
 }
 
-export function all<T>(this: unknown, ...promises: PromiseArgs<T>): TheAsyncThing<T[]> {
+export function all<T, TArgs extends  PromiseArgTuple<T>>(this: unknown, ...promises: TArgs): TheAsyncThing<PromiseTuple<TArgs>>
+export function all<T>(this: unknown, ...promises: PromiseArgs<T>): TheAsyncThing<T[]>
+export function all<T>(this: unknown, ...promises: PromiseArgs<T>): TheAsyncThing {
     return anAsyncThing(allGenerator.call(this, ...promises));
 }
 
-export async function *allGenerator<T>(this: unknown, ...promises: PromiseArgs<T>): AsyncIterable<T[]> {
+export function allGenerator<T, TArgs extends  PromiseArgTuple<T>>(this: unknown, ...promises: TArgs): AsyncIterable<PromiseTuple<TArgs>>
+export function allGenerator<T>(this: unknown, ...promises: PromiseArgs<T>): AsyncIterable<T[]>
+export async function *allGenerator<T>(this: unknown, ...promises: PromiseArgs<T>): AsyncIterable<unknown> {
     let rejected;
     for await (const status of allSettledGenerator(...promises)) {
         rejected = status.filter(isPromiseRejectedResult);
@@ -20,7 +24,7 @@ export async function *allGenerator<T>(this: unknown, ...promises: PromiseArgs<T
             throw aggregateError(rejected);
         }
         if (rejected.length) continue; // Wait until we have accumulated all rejected
-        yield status.map(status => status?.status === "fulfilled" ? status.value : undefined);
+        yield status.map((status): T => status?.status === "fulfilled" ? status.value : undefined);
     }
     if (rejected?.length) {
         throw aggregateError(rejected);
