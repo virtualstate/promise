@@ -1,11 +1,8 @@
-
+import {isLike} from "./like";
 
 export function isAsyncIterable<T>(value: unknown): value is AsyncIterable<T> {
-    function isAsyncIterableInstance(value: unknown): value is AsyncIterable<T> {
-        return !!value;
-    }
     return !!(
-        isAsyncIterableInstance(value) &&
+        isLike<AsyncIterable<unknown>>(value) &&
         typeof value[Symbol.asyncIterator] === "function"
     );
 }
