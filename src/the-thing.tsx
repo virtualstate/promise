@@ -1,3 +1,5 @@
+import {isAsyncIterable} from "./is";
+
 export type TheAsyncThing<T = unknown> =
   & Promise<T>
   & AsyncIterable<T>
@@ -66,9 +68,5 @@ export function anAsyncThing<T>(async: Partial<TheAsyncThing<T>>): TheAsyncThing
 
   function isYieldedResult(value: IteratorResult<T>): value is IteratorYieldResult<T> {
     return !value.done;
-  }
-
-  function isAsyncIterable(value: Partial<TheAsyncThing<T>>): value is AsyncIterable<T> {
-    return typeof async[Symbol.asyncIterator] === "function"
   }
 }

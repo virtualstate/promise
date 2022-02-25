@@ -6,6 +6,6 @@ export function isAsyncIterable<T>(value: unknown): value is AsyncIterable<T> {
     }
     return !!(
         isAsyncIterableInstance(value) &&
-        value[Symbol.asyncIterator] instanceof Function
+        typeof value[Symbol.asyncIterator] === "function"
     );
 }
