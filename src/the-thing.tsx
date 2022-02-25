@@ -30,7 +30,7 @@ export function anAsyncThing<T>(async: Partial<TheAsyncThing<T>>): TheAsyncThing
           if (isYieldedResult(result)) {
             nextValue = yield result.value;
           }
-        } while (result.done);
+        } while (!result.done);
       }
     },
     async next(...args: [] | [unknown]) {

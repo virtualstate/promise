@@ -1,41 +1,31 @@
 import { all, allSettled } from "../";
 
 {
-    try {
-        // logs undefined
-        console.log(await all());
+    // logs undefined
+    console.log(await all());
 // logs [1, 2]
-        console.log(await all(Promise.resolve(1), Promise.resolve(2)));
+    console.log(await all(Promise.resolve(1), Promise.resolve(2)));
 // logs rejected
-        console.log(
-            await all(Promise.resolve(1), Promise.reject(2))
-                .catch(() => "rejected")
-        );
-    } catch (reason) {
-        console.error(reason);
-        process.exit(1);
-    }
+    console.log(
+        await all(Promise.resolve(1), Promise.reject(2))
+            .catch(() => "rejected")
+    );
 }
 
 {
     const wait = (timeout = 1, arg: unknown = undefined) => new Promise(resolve => setTimeout(resolve, timeout, arg));
 
-   try {
-       for await (const state of all(
-           wait(10, "first index, second resolve"),
-           wait(1, "second index, first resolve")
-       )) {
-           /*
-           logs
-           { state: [undefined, "second index, first resolve"] }
-           { state: ["first index, second resolve", "second index, first resolve"] }
-            */
-           console.log({ state });
-       }
-   } catch (reason) {
-       console.error(reason);
-       process.exit(1);
-   }
+    for await (const state of all(
+        wait(10, "first index, second resolve"),
+        wait(1, "second index, first resolve")
+    )) {
+        /*
+        logs
+        { state: [undefined, "second index, first resolve"] }
+        { state: ["first index, second resolve", "second index, first resolve"] }
+         */
+        console.log({ state });
+    }
 }
 
 {

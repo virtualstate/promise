@@ -1,6 +1,8 @@
 import {Promise, PromiseAllRejectEarly} from "../index";
 import {GlobalPromise} from "./global";
 
+await import("./ok");
+await import("./the-thing");
 await import("./readme");
 await import("./typed");
 

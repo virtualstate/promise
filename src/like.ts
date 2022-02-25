@@ -1,5 +1,3 @@
-/* c8 ignore start */
-
 export function isLike<T>(value: unknown): value is T {
     return !!value;
 }
