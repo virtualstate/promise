@@ -126,3 +126,12 @@ import {sleep} from "./sleep";
         if (d) ok(d.status === "fulfilled" && ([8] as const).includes(d.value));
     }
 }
+
+{
+    const [a, b] = await allSettled(Promise.resolve(1), Promise.reject(2));
+
+    ok(a);
+    ok(b);
+    ok(a.status === "fulfilled");
+    ok(b.status === "rejected");
+}
