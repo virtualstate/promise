@@ -12,6 +12,18 @@ import {sleep} from "./sleep";
 }
 
 {
+    const [a, b] = await all([
+        Promise.resolve(1 as const),
+        Promise.resolve(2 as const)
+    ]);
+
+    console.log({ a, b });
+
+    ok(a === 1);
+    ok(b === 2);
+}
+
+{
 
     for await(const [a, b] of all(sleep(10, 1 as const), sleep(15, 2 as const))) {
         console.log({ state: { a, b } });
