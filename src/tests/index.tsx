@@ -7,23 +7,22 @@ await import("./typed");
 const { inputs } = await import("./input");
 
 for (const input of inputs) {
-    const getInput = () => input.map(value => typeof value === "function" ? value() : value);
-    const promiseOutput = await Promise.allSettled(...getInput());
+    const promiseOutput = await Promise.allSettled(...input);
     console.log({ input });
     console.log({ promiseOutput });
-    for await (const state of Promise.allSettled(...getInput())) {
+    for await (const state of Promise.allSettled(...input)) {
         console.log({ state });
     }
 
     try {
-        const allPromiseOutput = await Promise.all(...getInput());
+        const allPromiseOutput = await Promise.all(...input);
         console.log({ allPromiseOutput })
     } catch (allPromiseReason) {
         console.log({ allPromiseReason });
     }
 
     try {
-        for await (const state of Promise.all(...getInput())) {
+        for await (const state of Promise.all(...input)) {
             console.log({ state })
         }
     } catch (allPromiseReason) {
@@ -40,4 +39,9 @@ await Promise.all.call({
 await Promise.all(
     GlobalPromise.reject("message"),
     GlobalPromise.reject("message"),
+).catch((reason: unknown) => reason);
+
+await Promise.allSettled(
+    // Not allowed
+    (1 as unknown) as Promise<unknown>,
 ).catch((reason: unknown) => reason);

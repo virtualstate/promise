@@ -1,5 +1,6 @@
 import {anAsyncThing, TheAsyncThing} from "./the-thing";
 import {union} from "@virtualstate/union";
+import {isAsyncIterable} from "./is";
 
 export function allSettled<T, TArgs extends  PromiseArgTuple<T>>(this: unknown, ...promises: TArgs): TheAsyncThing<PromiseSettledTuple<TArgs>>
 export function allSettled<T>(...promises: PromiseArgs<T>): TheAsyncThing<PromiseSettledResult<T>[]>
@@ -11,14 +12,8 @@ export function allSettledGenerator<T, TArgs extends  PromiseArgTuple<T>>(this: 
 export function allSettledGenerator<T>(...promises: PromiseArgs<T>): AsyncIterable<PromiseSettledResult<T>[]>
 export async function *allSettledGenerator<T>(...promises: PromiseArgs<T>): AsyncIterable<unknown> {
     type KnownPromiseResult = [number, PromiseSettledResult<T>];
-    const input = promises.flatMap(value => value).map((promise, index) => (
-        promise
-            .then((value): KnownPromiseResult  => [index, { value, status: "fulfilled" }])
-            .catch((reason): KnownPromiseResult => [index, { reason, status: "rejected" }])
-    ));
-    const knownPromises = [...input].map(async function *(promise) {
-        yield promise;
-    });
+    const input = promises.flatMap(value => value);
+    const knownPromises = [...input].map(map);
     const results = Array.from<PromiseSettledResult<T>>({ length: input.length });
     for await (const state of union(knownPromises)) {
         for (const item of state) {
@@ -26,6 +21,30 @@ export async function *allSettledGenerator<T>(...promises: PromiseArgs<T>): Asyn
             const [index, result] = item;
             results[index] = result;
         }
-        yield results;
+        // Copy out the results so that we don't give out access to this potentially shared array
+        yield [...results];
+    }
+
+    async function *map(promise: PromiseOrAsync<T>, index: number): AsyncIterable<KnownPromiseResult> {
+        try {
+            const isFunction = typeof promise === "function";
+            const isObject = typeof promise === "object";
+            const isFunctionOrObject = isFunction || isObject;
+            if (isFunctionOrObject && "then" in promise) {
+                return yield [index, { value: await promise, status: "fulfilled" }];
+            }
+            if (!isAsyncIterable(promise)) {
+                if (isFunction) {
+                    const value = promise();
+                    return yield *map(value, index);
+                }
+                return yield [index, { reason: new Error("Unknown input"), status: "rejected" }];
+            }
+            for await (const value of promise) {
+                yield [index, { value, status: "fulfilled" }];
+            }
+        } catch (reason) {
+            yield [index, { reason, status: "rejected"}];
+        }
     }
 }
