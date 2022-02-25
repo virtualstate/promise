@@ -54,7 +54,10 @@ export function anAsyncThing<T>(async: Partial<TheAsyncThing<T>>): TheAsyncThing
   function getPromise(): Promise<T> {
     promise = promise || asPromise();
     return promise;
-    async function asPromise() {
+    async function asPromise(): Promise<T> {
+      if (async.then) {
+        return new Promise((resolve, reject) => async.then(resolve, reject));
+      }
       let value: T;
       for await (value of thing) {}
       return value;
