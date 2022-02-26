@@ -1,5 +1,8 @@
 # `@virtualstate/promise`
 
+> Psst... There is a blog post at [fabiancook.dev](https://fabiancook.dev/2022/02/26/an-async-thing) with details on how 
+> this project came to be, and the steps taken during implementation to define included functionality. 
+
 [//]: # (badges)
 
 ### Support
