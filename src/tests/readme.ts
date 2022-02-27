@@ -1,7 +1,7 @@
 import { all, allSettled } from "../";
 
 {
-    // logs undefined
+    // logs []
     console.log(await all());
 // logs [1, 2]
     console.log(await all(Promise.resolve(1), Promise.resolve(2)));
@@ -30,7 +30,7 @@ import { all, allSettled } from "../";
 
 {
 
-    // logs undefined
+    // logs []
     console.log(await allSettled());
 // logs [
 //   { value: 1, status: 'fulfilled' },

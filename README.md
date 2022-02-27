@@ -20,7 +20,7 @@
 ```typescript
 import { all } from "@virtualstate/promise";
 
-// logs undefined
+// logs []
 console.log(await all());
 // logs [1, 2]
 console.log(await all(Promise.resolve(1), Promise.resolve(2)));

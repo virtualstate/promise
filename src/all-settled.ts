@@ -15,6 +15,7 @@ export async function *allSettledGenerator<T>(...promises: PromiseArgs<T>): Asyn
     const input = promises.flatMap(value => value);
     const knownPromises = [...input].map(map);
     const results = Array.from<PromiseSettledResult<T>>({ length: input.length });
+    let yielded = false;
     for await (const state of union(knownPromises)) {
         for (const item of state) {
             if (!item) continue;
@@ -23,7 +24,9 @@ export async function *allSettledGenerator<T>(...promises: PromiseArgs<T>): Asyn
         }
         // Copy out the results so that we don't give out access to this potentially shared array
         yield [...results];
+        yielded = true;
     }
+    if (!yielded) yield [];
 
     async function *map(promise: PromiseOrAsync<T>, index: number): AsyncIterable<KnownPromiseResult> {
         try {
