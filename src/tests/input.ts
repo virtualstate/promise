@@ -1,5 +1,6 @@
 /* c8 ignore start */
 
+import { PromiseArgs } from "args";
 import {sleep} from "./sleep";
 
 export const inputs: PromiseArgs<unknown>[] = [

@@ -1,6 +1,7 @@
 import {anAsyncThing, TheAsyncThing} from "./the-thing";
 import {union} from "@virtualstate/union";
 import {isAsyncIterable} from "./is";
+import {PromiseArgs, PromiseArgTuple, PromiseOrAsync, PromiseSettledTuple } from "args";
 
 export function allSettled<T, TArgs extends  PromiseArgTuple<T>>(this: unknown, ...promises: TArgs): TheAsyncThing<PromiseSettledTuple<TArgs>>
 export function allSettled<T>(...promises: PromiseArgs<T>): TheAsyncThing<PromiseSettledResult<T>[]>

@@ -54,7 +54,7 @@ for await (const state of all(
 ```typescript
 import { allSettled } from "@virtualstate/promise";
 
-// logs undefined
+// logs []
 console.log(await allSettled());
 // logs [
 //   { value: 1, status: 'fulfilled' },
