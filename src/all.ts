@@ -1,7 +1,7 @@
 import {allSettledGenerator} from "./all-settled";
 import {anAsyncThing, TheAsyncThing} from "./the-thing";
 import {isLike} from "./like";
-import {PromiseArgs, PromiseArgTuple, PromiseTuple } from "args";
+import {PromiseArgs, PromiseArgTuple, PromiseTuple } from "./args";
 
 export const PromiseAllRejectEarly = Symbol.for("@virtualstate/promise/all/rejectEarly");
 
