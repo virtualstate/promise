@@ -1,15 +1,15 @@
 import {isAsyncIterable} from "./is";
 
-export type TheAsyncThing<T = unknown> =
-  & Promise<T>
+export type TheAsyncThing<T = unknown, PT = T> =
+  & Promise<PT>
   & AsyncIterable<T>
   & AsyncIterator<T, unknown, unknown>;
 
-export function anAsyncThing<T>(async: Partial<TheAsyncThing<T>>): TheAsyncThing<T> {
+export function anAsyncThing<T>(async: Partial<TheAsyncThing<T, T>>): TheAsyncThing<T, T> {
   let iterator: AsyncIterator<T, unknown, unknown>,
       promise: Promise<T>;
 
-  const thing: TheAsyncThing<T> = {
+  const thing: TheAsyncThing<T, T> = {
     async then(resolve, reject) {
       return getPromise().then(resolve, reject);
     },
