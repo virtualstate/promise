@@ -1,7 +1,12 @@
 import {allSettledGenerator} from "./all-settled";
 import {anAsyncThing, TheAsyncThing} from "./the-thing";
 import {isLike} from "./like";
-import {PromiseArgs, PromiseArgTuple, PromiseTuple } from "./args";
+import {
+    PromiseArgs,
+    PromiseArgTuple,
+    PromiseTuple,
+    PromiseTupleIntermediate
+} from "./args";
 
 export const PromiseAllRejectEarly = Symbol.for("@virtualstate/promise/all/rejectEarly");
 
@@ -9,13 +14,13 @@ export interface PromiseContext {
     [PromiseAllRejectEarly]?: unknown
 }
 
-export function all<T, TArgs extends  PromiseArgTuple<T>>(this: unknown, ...promises: TArgs): TheAsyncThing<PromiseTuple<TArgs>>
+export function all<T, TArgs extends  PromiseArgTuple<T>>(this: unknown, ...promises: TArgs): TheAsyncThing<PromiseTupleIntermediate<TArgs>, PromiseTuple<TArgs>>
 export function all<T>(this: unknown, ...promises: PromiseArgs<T>): TheAsyncThing<T[]>
 export function all<T>(this: unknown, ...promises: PromiseArgs<T>): TheAsyncThing {
     return anAsyncThing(allGenerator.call(this, ...promises));
 }
 
-export function allGenerator<T, TArgs extends  PromiseArgTuple<T>>(this: unknown, ...promises: TArgs): AsyncIterable<PromiseTuple<TArgs>>
+export function allGenerator<T, TArgs extends  PromiseArgTuple<T>>(this: unknown, ...promises: TArgs): AsyncIterable<PromiseTupleIntermediate<TArgs>>
 export function allGenerator<T>(this: unknown, ...promises: PromiseArgs<T>): AsyncIterable<T[]>
 export async function *allGenerator<T>(this: unknown, ...promises: PromiseArgs<T>): AsyncIterable<unknown> {
     let rejected;
