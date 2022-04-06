@@ -131,59 +131,59 @@ interface ResolveFn<T> {
 // There is a nicer way to do this, I just haven't included as a dependency... yet
 export class Push<T> {
 
-    #values: T[] = [];
+    private values: T[] = [];
 
-    #resolve: ResolveFn<void>[] = [];
-    #active = true;
+    private resolve: ResolveFn<void>[] = [];
+    private active = true;
 
-    #doneResolve: ResolveFn<void>;
-    #donePromise: Promise<void>;
+    private doneResolve: ResolveFn<void>;
+    private donePromise: Promise<void>;
     
     push(value: T) {
-        if (!this.#active) return;
-        this.#values.push(value);
-        this.#resolveAll();
+        if (!this.active) return;
+        this.values.push(value);
+        this.resolveAll();
     }
 
-    #resolveAll() {
-        if (!this.#resolve.length) {
+    private  resolveAll() {
+        if (!this.resolve.length) {
             return;
         }
-        const fns = [...this.#resolve];
-        this.#resolve = [];
+        const fns = [...this.resolve];
+        this.resolve = [];
         for (const fn of fns) {
             fn();
         }
     }
 
     close() {
-        if (!this.#active) return;
-        this.#active = false;
-        this.#resolveAll();
-        this.#doneResolve?.();
+        if (!this.active) return;
+        this.active = false;
+        this.resolveAll();
+        this.doneResolve?.();
     }
 
     async * [Symbol.asyncIterator]() {
-        if (!this.#doneResolve) {
-            this.#donePromise = new Promise(fn => this.#doneResolve = fn);
+        if (!this.doneResolve) {
+            this.donePromise = new Promise(fn => this.doneResolve = fn);
         }
-        if (!this.#active) return;
+        if (!this.active) return;
         // console.log("starting push watch");
         let index = -1;
         do {
-            while (nextIndex() < this.#values.length) {
+            while (nextIndex() < this.values.length) {
                 index = nextIndex();
-                yield this.#values[index];
+                yield this.values[index];
             }
-            if (this.#active) {
+            if (this.active) {
                 // console.log("waiting");
                 await Promise.any([
-                    new Promise(resolve => this.#resolve.push(resolve)),
-                    this.#donePromise
+                    new Promise(resolve => this.resolve.push(resolve)),
+                    this.donePromise
                 ]);
                 // console.log("resolved");
             }
-        } while (this.#active || (nextIndex() < this.#values.length));
+        } while (this.active || (nextIndex() < this.values.length));
         // console.log("finished push");
 
         function nextIndex() {
