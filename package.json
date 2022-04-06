@@ -18,6 +18,9 @@
       "the-thing": [
         "./esnext/the-thing.d.ts"
       ],
+      "downstream": [
+        "./esnext/downstream.d.ts"
+      ],
       "tests": [
         "./esnext/tests/index.d.ts"
       ]
@@ -31,6 +34,7 @@
     "./all": "./esnext/all.js",
     "./all-settled": "./esnext/all-settled.js",
     "./the-thing": "./esnext/the-thing.js",
+    "./downstream": "./esnext/downstream.js",
     "./tests": "./esnext/tests/index.js"
   },
   "repository": {
@@ -61,12 +65,14 @@
     "@types/rimraf": "^3.0.2",
     "@types/uuid": "^8.3.3",
     "@types/whatwg-url": "^8.2.1",
-    "@virtualstate/dom": "^2.46.0",
-    "@virtualstate/examples": "^2.46.0",
-    "@virtualstate/fringe": "^2.46.1",
-    "@virtualstate/hooks": "^2.46.0",
-    "@virtualstate/hooks-extended": "^2.46.0",
-    "@virtualstate/x": "^2.46.0",
+    "@virtualstate/astro-renderer": "^2.48.1",
+    "@virtualstate/dom": "^2.48.1",
+    "@virtualstate/examples": "^2.48.1",
+    "@virtualstate/fringe": "^2.48.1",
+    "@virtualstate/hooks": "^2.48.1",
+    "@virtualstate/hooks-extended": "^2.48.1",
+    "@virtualstate/union": "^2.48.1",
+    "@virtualstate/x": "^2.48.1",
     "c8": "^7.10.0",
     "chance": "^1.1.8",
     "cheerio": "^1.0.0-rc.10",
@@ -94,6 +100,7 @@
     "prepublishOnly": "npm run build",
     "test": "yarn build && node --enable-source-maps esnext/tests/index.js",
     "test:deno": "yarn build && deno run --allow-read --allow-net --import-map=import-map-deno.json esnext/tests/index.js",
+    "test:deno:reload": "yarn test:deno:r",
     "test:deno:r": "yarn build && deno run -r --allow-read --allow-net --import-map=import-map-deno.json esnext/tests/index.js",
     "test:inspect": "yarn build && node --enable-source-maps --inspect-brk esnext/tests/index.js",
     "coverage": "yarn build && c8 node esnext/tests/index.js && yarn postbuild"
