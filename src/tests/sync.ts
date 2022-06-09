@@ -57,7 +57,7 @@ async function withThing(thing: TheSyncThing) {
 }
 
 await withThing(aSyncThing([1, 2, 3]));
-const source: Iterator<number> & { value: number, max: number } = {
+const source = {
     value: 0,
     max: 10,
     next(): IteratorResult<number> {
@@ -69,7 +69,7 @@ const source: Iterator<number> & { value: number, max: number } = {
             return { value, done: false };
         }
     },
-    return() {
+    return(): IteratorResult<number> {
         source.value = 0;
         return { done: true, value: undefined };
     }
