@@ -965,7 +965,7 @@
     js-yaml "^3.13.1"
     resolve-from "^5.0.0"
 
-"@istanbuljs/schema@^0.1.2":
+"@istanbuljs/schema@^0.1.2", "@istanbuljs/schema@^0.1.3":
   version "0.1.3"
   resolved "https://registry.npmjs.org/@istanbuljs/schema/-/schema-0.1.3.tgz#e45e384e4b8ec16bce2fd903af78450f6bf7ec98"
   integrity sha512-ZXRY4jNvVgSVQ8DL3LTcakaAtXwTVUxE81hslsyD2AtoXW/wVob10HkOJ1X/pAlcI7D+2YoZKg5do8G/w6RYgA==
@@ -1138,6 +1138,24 @@
     "@types/node" "*"
     "@types/yargs" "^16.0.0"
     chalk "^4.0.0"
+
+"@jridgewell/resolve-uri@^3.0.3":
+  version "3.0.7"
+  resolved "https://registry.npmjs.org/@jridgewell/resolve-uri/-/resolve-uri-3.0.7.tgz#30cd49820a962aff48c8fffc5cd760151fca61fe"
+  integrity sha512-8cXDaBBHOr2pQ7j77Y6Vp5VDT2sIqWyWQ56TjEq4ih/a4iST3dItRe8Q9fp0rrIl9DoKhWQtUQz/YpOxLkXbNA==
+
+"@jridgewell/sourcemap-codec@^1.4.10":
+  version "1.4.13"
+  resolved "https://registry.npmjs.org/@jridgewell/sourcemap-codec/-/sourcemap-codec-1.4.13.tgz#b6461fb0c2964356c469e115f504c95ad97ab88c"
+  integrity sha512-GryiOJmNcWbovBxTfZSF71V/mXbgcV3MewDe3kIMCLyIh5e7SKAeUZs+rMnJ8jkMolZ/4/VsdBmMrw3l+VdZ3w==
+
+"@jridgewell/trace-mapping@^0.3.7":
+  version "0.3.13"
+  resolved "https://registry.npmjs.org/@jridgewell/trace-mapping/-/trace-mapping-0.3.13.tgz#dcfe3e95f224c8fe97a87a5235defec999aa92ea"
+  integrity sha512-o1xbKhp9qnIAoHJSWd6KlCZfqslL4valSF81H8ImioOAxluWYWOpWkpyktY2vnt4tbrX9XYaxovq6cgowaJp2w==
+  dependencies:
+    "@jridgewell/resolve-uri" "^3.0.3"
+    "@jridgewell/sourcemap-codec" "^1.4.10"
 
 "@nicolo-ribaudo/chokidar-2@2.1.8-no-fsevents.2":
   version "2.1.8-no-fsevents.2"
@@ -1868,23 +1886,23 @@ builtin-modules@^3.1.0:
   resolved "https://registry.npmjs.org/builtin-modules/-/builtin-modules-3.2.0.tgz#45d5db99e7ee5e6bc4f362e008bf917ab5049887"
   integrity sha512-lGzLKcioL90C7wMczpkY0n/oART3MbBa8R9OFGE1rJxoVI86u4WAGfEk8Wjv10eKSyTHVGkSo3bvBylCEtk7LA==
 
-c8@^7.10.0:
-  version "7.10.0"
-  resolved "https://registry.npmjs.org/c8/-/c8-7.10.0.tgz#c539ebb15d246b03b0c887165982c49293958a73"
-  integrity sha512-OAwfC5+emvA6R7pkYFVBTOtI5ruf9DahffGmIqUc9l6wEh0h7iAFP6dt/V9Ioqlr2zW5avX9U9/w1I4alTRHkA==
+c8@^7.11.3:
+  version "7.11.3"
+  resolved "https://registry.npmjs.org/c8/-/c8-7.11.3.tgz#88c8459c1952ed4f701b619493c9ae732b057163"
+  integrity sha512-6YBmsaNmqRm9OS3ZbIiL2EZgi1+Xc4O24jL3vMYGE6idixYuGdy76rIfIdltSKDj9DpLNrcXSonUTR1miBD0wA==
   dependencies:
     "@bcoe/v8-coverage" "^0.2.3"
-    "@istanbuljs/schema" "^0.1.2"
+    "@istanbuljs/schema" "^0.1.3"
     find-up "^5.0.0"
     foreground-child "^2.0.0"
-    istanbul-lib-coverage "^3.0.1"
+    istanbul-lib-coverage "^3.2.0"
     istanbul-lib-report "^3.0.0"
-    istanbul-reports "^3.0.2"
-    rimraf "^3.0.0"
+    istanbul-reports "^3.1.4"
+    rimraf "^3.0.2"
     test-exclude "^6.0.0"
-    v8-to-istanbul "^8.0.0"
+    v8-to-istanbul "^9.0.0"
     yargs "^16.2.0"
-    yargs-parser "^20.2.7"
+    yargs-parser "^20.2.9"
 
 cache-base@^1.0.1:
   version "1.0.1"
@@ -3190,7 +3208,7 @@ istanbul-lib-coverage@^3.0.0, istanbul-lib-coverage@^3.0.0-alpha.1:
   resolved "https://registry.npmjs.org/istanbul-lib-coverage/-/istanbul-lib-coverage-3.0.0.tgz#f5944a37c70b550b02a78a5c3b2055b280cec8ec"
   integrity sha512-UiUIqxMgRDET6eR+o5HbfRYP1l0hqkWOs7vNxC/mggutCMUIhWMm8gAHb8tHlyfD3/l6rlgNA5cKdDzEAf6hEg==
 
-istanbul-lib-coverage@^3.0.1:
+istanbul-lib-coverage@^3.2.0:
   version "3.2.0"
   resolved "https://registry.npmjs.org/istanbul-lib-coverage/-/istanbul-lib-coverage-3.2.0.tgz#189e7909d0a39fa5a3dfad5b03f71947770191d3"
   integrity sha512-eOeJ5BHCmHYvQK7xt9GkdHuzuCGS1Y6g9Gvnx3Ym33fz/HpLRYxiS0wHNr+m/MBC8B647Xt608vCDEvhl9c6Mw==
@@ -3247,6 +3265,14 @@ istanbul-reports@^3.0.2:
   version "3.0.2"
   resolved "https://registry.npmjs.org/istanbul-reports/-/istanbul-reports-3.0.2.tgz#d593210e5000683750cb09fc0644e4b6e27fd53b"
   integrity sha512-9tZvz7AiR3PEDNGiV9vIouQ/EAcqMXFmkcA1CDFTwOB98OZVDL0PH9glHotf5Ugp6GCOTypfzGWI/OqjWNCRUw==
+  dependencies:
+    html-escaper "^2.0.0"
+    istanbul-lib-report "^3.0.0"
+
+istanbul-reports@^3.1.4:
+  version "3.1.4"
+  resolved "https://registry.npmjs.org/istanbul-reports/-/istanbul-reports-3.1.4.tgz#1b6f068ecbc6c331040aab5741991273e609e40c"
+  integrity sha512-r1/DshN4KSE7xWEknZLLLLDn5CJybV3nw01VTkp6D5jzLuELlcbudfj/eSQFvrKsJuTVCGnePO7ho82Nw9zzfw==
   dependencies:
     html-escaper "^2.0.0"
     istanbul-lib-report "^3.0.0"
@@ -5232,6 +5258,15 @@ v8-to-istanbul@^8.1.0:
     convert-source-map "^1.6.0"
     source-map "^0.7.3"
 
+v8-to-istanbul@^9.0.0:
+  version "9.0.0"
+  resolved "https://registry.npmjs.org/v8-to-istanbul/-/v8-to-istanbul-9.0.0.tgz#be0dae58719fc53cb97e5c7ac1d7e6d4f5b19511"
+  integrity sha512-HcvgY/xaRm7isYmyx+lFKA4uQmfUbN0J4M0nNItvzTvH/iQ9kW5j/t4YSR+Ge323/lrgDAWJoF46tzGQHwBHFw==
+  dependencies:
+    "@jridgewell/trace-mapping" "^0.3.7"
+    "@types/istanbul-lib-coverage" "^2.0.1"
+    convert-source-map "^1.6.0"
+
 w3c-hr-time@^1.0.2:
   version "1.0.2"
   resolved "https://registry.npmjs.org/w3c-hr-time/-/w3c-hr-time-1.0.2.tgz#0a89cdf5cc15822df9c360543676963e0cc308cd"
@@ -5391,7 +5426,7 @@ yallist@^4.0.0:
   resolved "https://registry.npmjs.org/yallist/-/yallist-4.0.0.tgz#9bb92790d9c0effec63be73519e11a35019a3a72"
   integrity sha512-3wdGidZyq5PB084XLES5TpOSRA3wjXAlIWMhum2kRcv/41Sn2emQ0dycQW4uZXLejwKvg6EsvbdlVL+FYEct7A==
 
-yargs-parser@20.x, yargs-parser@^20.2.2, yargs-parser@^20.2.7:
+yargs-parser@20.x, yargs-parser@^20.2.2, yargs-parser@^20.2.9:
   version "20.2.9"
   resolved "https://registry.npmjs.org/yargs-parser/-/yargs-parser-20.2.9.tgz#2eb7dc3b0289718fc295f362753845c41a0c94ee"
   integrity sha512-y11nGElTIV+CT3Zv9t7VKl+Q3hTQoT9a1Qzezhhl6Rp21gJ/IVTW7Z3y9EWXhuUBC2Shnf+DX0antecpAwSP8w==
