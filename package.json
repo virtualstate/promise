@@ -18,6 +18,9 @@
       "the-thing": [
         "./esnext/the-thing.d.ts"
       ],
+      "the-sync-thing": [
+        "./esnext/the-sync-thing.d.ts"
+      ],
       "downstream": [
         "./esnext/downstream.d.ts"
       ],
@@ -34,6 +37,7 @@
     "./all": "./esnext/all.js",
     "./all-settled": "./esnext/all-settled.js",
     "./the-thing": "./esnext/the-thing.js",
+    "./the-sync-thing": "./esnext/the-sync-thing.js",
     "./downstream": "./esnext/downstream.js",
     "./tests": "./esnext/tests/index.js"
   },
