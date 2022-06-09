@@ -6,3 +6,4 @@ await import("./the-thing");
 await import("./readme");
 await import("./typed");
 await import("./downstream");
+await import("./sync");
