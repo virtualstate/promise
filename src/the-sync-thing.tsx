@@ -2,7 +2,6 @@ import {
   isIterable,
   isIteratorNext,
   isIteratorReturn,
-  isIteratorThrow,
   isIteratorYieldResult
 } from "./is";
 import {TheAsyncThing} from "./the-thing";
@@ -20,22 +19,17 @@ export type TheSyncThingInput<T> = Partial<Iterable<T> & Iterator<T, unknown>>
 
 export function aSyncThing<T>(sync: TheSyncThingInput<T>): TheSyncThing<T, T> {
   let iterator: Iterator<T, unknown, unknown>,
-      lastIterator: Iterator<T, unknown, unknown>,
-      promise: Promise<T>;
+      lastIterator: Iterator<T, unknown, unknown>;
 
-  function resolvedPromise<V>(value?: V, error?: unknown): Promise<V> {
+  function resolvedPromise<V>(value: V): Promise<V> {
     return {
       async then(resolve, reject) {
-        if (error) {
-          return reject(error);
-        } else {
-          return resolve(value);
-        }
+        void reject;
+        return resolve(value);
       },
-      async catch(reject) {
-        if (error) {
-          return reject(error);
-        }
+      /* c8 ignore start */
+      async catch() {
+        throw new Error("promise.catch not supported with sync promise");
       },
       async finally() {
         throw new Error("promise.finally not supported with sync promise");
@@ -43,6 +37,7 @@ export function aSyncThing<T>(sync: TheSyncThingInput<T>): TheSyncThing<T, T> {
       get [Symbol.toStringTag]() {
         return "SyncPromise"
       }
+      /* c8 ignore end */
     };
   }
 
@@ -77,12 +72,6 @@ export function aSyncThing<T>(sync: TheSyncThingInput<T>): TheSyncThing<T, T> {
               returnYield = yield result.value;
             }
           } while (isIteratorYieldResult(result));
-        } catch (error) {
-          if (isIteratorThrow(value)) {
-            value.throw(error);
-          } else {
-            throw error;
-          }
         } finally {
           if (isIteratorReturn(value)) {
             value.return(returnYield);

@@ -63,7 +63,6 @@ const source: Iterator<number> & { value: number, max: number } = {
     next(): IteratorResult<number> {
         const value = source.value;
         if (value >= source.max) {
-            source.value = 0;
             return { value: undefined, done: true }
         } else {
             source.value += 1;
@@ -71,10 +70,8 @@ const source: Iterator<number> & { value: number, max: number } = {
         }
     },
     return() {
+        source.value = 0;
         return { done: true, value: undefined };
-    },
-    throw() {
-        return { done: true, value: undefined }
     }
 };
 

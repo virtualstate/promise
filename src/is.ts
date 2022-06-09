@@ -28,12 +28,7 @@ export function isIteratorNext<T>(value: unknown): value is { next(value: unknow
         typeof value.next === "function"
     );
 }
-export function isIteratorThrow<T>(value: unknown): value is { throw(error: unknown): IteratorResult<T> } {
-    return !!(
-        isLike<Partial<Iterator<unknown>>>(value) &&
-        typeof value.throw === "function"
-    );
-}
+
 export function isIteratorReturn<T>(value: unknown): value is { return(value: unknown): IteratorResult<T> } {
     return !!(
         isLike<Partial<Iterator<unknown>>>(value) &&
