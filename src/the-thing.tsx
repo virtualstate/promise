@@ -1,11 +1,15 @@
-import {isAsyncIterable} from "./is";
+import {isAsyncIterable, isIterable} from "./is";
 
 export type TheAsyncThing<T = unknown, PT = T> =
   & Promise<PT>
   & AsyncIterable<T>
   & AsyncIterator<T, unknown, unknown>;
 
-export function anAsyncThing<T>(async: Partial<TheAsyncThing<T, T>>): TheAsyncThing<T, T> {
+export type TheAsyncThingInput<T> = Partial<AsyncIterable<T> | AsyncIterator<T,  unknown> | Promise<T>>;
+
+export function anAsyncThing<T, I extends Iterable<T>>(sync: I): TheAsyncThing<I, I>
+export function anAsyncThing<T>(async: TheAsyncThingInput<T>): TheAsyncThing<T, T>
+export function anAsyncThing<T>(async: TheAsyncThingInput<T>): TheAsyncThing<T, T>  {
   let iterator: AsyncIterator<T, unknown, unknown>,
       promise: Promise<T>;
 
@@ -20,11 +24,13 @@ export function anAsyncThing<T>(async: Partial<TheAsyncThing<T, T>>): TheAsyncTh
       return getPromise().finally(fn);
     },
     async *[Symbol.asyncIterator]() {
-      if (isAsyncIterable(async)) {
+      if (isAsyncIterable<T>(async)) {
         return yield * async;
-      } else if (async.then) {
+      } else if ("then" in async && async.then) {
         yield await new Promise((resolve, reject) => async.then(resolve, reject));
-      } else if (async.next) {
+      } else if (isSyncIterableValue(async)) {
+        yield async;
+      } else if ("next" in async && async.next) {
         let result;
         let nextValue;
         do {
@@ -33,6 +39,10 @@ export function anAsyncThing<T>(async: Partial<TheAsyncThing<T, T>>): TheAsyncTh
             nextValue = yield result.value;
           }
         } while (!result.done);
+      }
+
+      function isSyncIterableValue(value: unknown): value is T {
+        return isIterable(value);
       }
     },
     async next(...args: [] | [unknown]) {
@@ -57,7 +67,7 @@ export function anAsyncThing<T>(async: Partial<TheAsyncThing<T, T>>): TheAsyncTh
     promise = promise || asPromise();
     return promise;
     async function asPromise(): Promise<T> {
-      if (async.then) {
+      if ("then" in async && async.then) {
         return new Promise((resolve, reject) => async.then(resolve, reject));
       }
       let value: T;

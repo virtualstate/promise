@@ -1,6 +1,7 @@
 
 import {aSyncThing, TheSyncThing} from "../the-sync-thing";
 import {isIteratorYieldResult} from "../is";
+import {anAsyncThing} from "../the-thing";
 
 async function withThing(thing: TheSyncThing) {
     async function run() {
@@ -76,3 +77,8 @@ const source = {
 };
 
 await withThing(aSyncThing(source));
+
+console.log("async sync:");
+for await (const asyncSync of anAsyncThing([1, 2, 3] as const)) {
+    await withThing(aSyncThing(asyncSync));
+}
