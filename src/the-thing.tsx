@@ -7,8 +7,8 @@ export type TheAsyncThing<T = unknown, PT = T> =
 
 export type TheAsyncThingInput<T> = Partial<AsyncIterable<T> | AsyncIterator<T,  unknown> | Promise<T>>;
 
-export function anAsyncThing<T, I extends Iterable<T>>(sync: I): TheAsyncThing<I, I>
 export function anAsyncThing<T>(async: TheAsyncThingInput<T>): TheAsyncThing<T, T>
+export function anAsyncThing<T, I extends Iterable<T>>(sync: I): TheAsyncThing<I, I>
 export function anAsyncThing<T>(async: TheAsyncThingInput<T>): TheAsyncThing<T, T>  {
   let iterator: AsyncIterator<T, unknown, unknown>,
       promise: Promise<T>;
