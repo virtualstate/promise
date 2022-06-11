@@ -21,17 +21,3 @@ export function isIteratorYieldResult<T>(value: unknown): value is IteratorYield
         !value.done
     );
 }
-
-export function isIteratorNext<T>(value: unknown): value is { next(value: unknown): IteratorResult<T> } {
-    return !!(
-        isLike<Partial<Iterator<unknown>>>(value) &&
-        typeof value.next === "function"
-    );
-}
-
-export function isIteratorReturn<T>(value: unknown): value is { return(value: unknown): IteratorResult<T> } {
-    return !!(
-        isLike<Partial<Iterator<unknown>>>(value) &&
-        typeof value.return === "function"
-    );
-}

@@ -1,25 +1,16 @@
-import {
-  isIterable,
-  isIteratorNext,
-  isIteratorReturn,
-  isIteratorYieldResult
-} from "./is";
-import {TheAsyncThing} from "./the-thing";
 
-export type TheSyncThing<T = unknown, PT = T> =
-  & Omit<TheAsyncThing<T, PT>, "next" | "return" | "throw">
+import {isIterable} from "./is";
+
+export type TheSyncThing<T = unknown> =
+  & AsyncIterable<Iterable<T>>
+  & Promise<Iterable<T>>
   & Iterable<T>
-  & {
-    next(...args: unknown[]): ReturnType<Iterator<T, unknown, unknown>["next"]> & ReturnType<AsyncIterator<T, unknown, unknown>["next"]>
-    return(...args: unknown[]): ReturnType<Iterator<T, unknown, unknown>["return"]> & ReturnType<AsyncIterator<T, unknown, unknown>["return"]>
-    throw(...args: unknown[]): ReturnType<Iterator<T, unknown, unknown>["throw"]> & ReturnType<AsyncIterator<T, unknown, unknown>["throw"]>
-  };
+  & Iterator<T, unknown, unknown>;
 
-export type TheSyncThingInput<T> = Partial<Iterable<T> & Iterator<T, unknown>>
-
-export function aSyncThing<T>(sync: TheSyncThingInput<T>): TheSyncThing<T, T> {
-  let iterator: Iterator<T, unknown, unknown>,
-      lastIterator: Iterator<T, unknown, unknown>;
+export function aSyncThing<T, I extends Iterable<T>>(sync: I): TheSyncThing<T>
+export function aSyncThing<T>(sync: T): TheSyncThing<T>
+export function aSyncThing<T>(sync: T): TheSyncThing {
+  let iterator: Iterator<unknown, unknown, unknown>;
 
   function resolvedPromise<V>(value: V): Promise<V> {
     return {
@@ -43,7 +34,7 @@ export function aSyncThing<T>(sync: TheSyncThingInput<T>): TheSyncThing<T, T> {
 
   const doneResult: IteratorResult<T> = { done: true, value: undefined };
 
-  const thing: TheSyncThing<T, T> = {
+  const thing: TheSyncThing = {
     then(resolve, reject) {
       return getPromise().then(resolve, reject);
     },
@@ -54,58 +45,35 @@ export function aSyncThing<T>(sync: TheSyncThingInput<T>): TheSyncThing<T, T> {
       return getPromise().finally(fn);
     },
     async *[Symbol.asyncIterator]() {
-      for (const next of thing) {
-        yield next;
+      if (isIterable(sync)) {
+        return yield sync;
+      }
+      yield {
+        *[Symbol.iterator]() {
+          yield * thing;
+        }
       }
     },
     *[Symbol.iterator]() {
-      const value = sync;
-      if (isIterable(value)) {
-        yield * value;
-      } else if (isIteratorNext<T>(value)) {
-        let result: IteratorResult<T, unknown>,
-            returnYield: unknown;
-        try {
-          do {
-            result = value.next();
-            if  (isIteratorYieldResult(result)) {
-              returnYield = yield result.value;
-            }
-          } while (isIteratorYieldResult(result));
-        } finally {
-          if (isIteratorReturn(value)) {
-            value.return(returnYield);
-          }
-        }
+      if (isIterable(sync)) {
+        yield * sync;
+      } else {
+        yield sync;
       }
     },
     next(...args: [] | [unknown]) {
-      if (!iterator) {
-        if (lastIterator) {
-          lastIterator?.return?.(...args);
-          lastIterator = undefined;
-        }
-        iterator = thing[Symbol.iterator]();
-      }
-      const result: IteratorResult<T> = iterator.next(...args);
-      if (result.done) {
-        lastIterator = iterator;
-        iterator = undefined;
-      }
-      const promise = resolvedPromise(result.value);
-      return { ...promise, ...result };
+      iterator = iterator ?? thing[Symbol.iterator]();
+      return iterator.next(...args);
     },
     return(...args: [] | [unknown]) {
-      const currentIterator = iterator ?? lastIterator;
-      const result: IteratorResult<T> = currentIterator?.return?.(...args) ?? doneResult;
-      const promise = resolvedPromise(result.value);
-      return { ...promise, ...result };
+      const result: IteratorResult<unknown> = iterator?.return?.(...args) ?? doneResult;
+      iterator = undefined;
+      return result;
     },
     throw(...args: [] | [unknown]) {
-      const currentIterator = iterator ?? lastIterator;
-      const result: IteratorResult<T> = currentIterator?.throw?.(...args) ?? doneResult;
-      const promise = resolvedPromise(result.value);
-      return { ...promise, ...result };
+      const result: IteratorResult<unknown> = iterator?.throw?.(...args) ?? doneResult;
+      iterator = undefined;
+      return result;
     },
     get [Symbol.toStringTag]() {
       return "TheSyncThing"
@@ -113,9 +81,8 @@ export function aSyncThing<T>(sync: TheSyncThingInput<T>): TheSyncThing<T, T> {
   }
   return thing;
 
-  function getPromise(): Promise<T> {
-    const next = thing.next();
-    return resolvedPromise(isIteratorYieldResult(next) ? next.value : undefined);
+  function getPromise() {
+    return resolvedPromise(isIterable(sync) ? sync : thing);
   }
 
 }
