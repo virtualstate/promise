@@ -1,9 +1,10 @@
 
 import {aSyncThing, TheSyncThing} from "../the-sync-thing";
-import {isIteratorYieldResult} from "../is";
+import {isIterable, isIteratorYieldResult} from "../is";
 import {anAsyncThing} from "../the-thing";
+import {ok} from "../like";
 
-async function withThing(thing: TheSyncThing<Iterable<number>>) {
+async function withThing(thing: TheSyncThing<number>) {
     function runSync() {
         const [one, two, three, ...rest] = thing;
         console.log({ one, two, three, rest });
@@ -35,6 +36,7 @@ async function withThing(thing: TheSyncThing<Iterable<number>>) {
             }
         }
         for await (const snapshot of thing) {
+            ok(isIterable(snapshot), "Expected iterable");
             for (const next of snapshot) {
                 console.log({ next });
             }
