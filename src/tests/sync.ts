@@ -13,6 +13,12 @@ async function withThing(thing: TheSyncThing<number>) {
         const [one, two, three, ...rest] = await thing;
         console.log({ one, two, three, rest });
     }
+    async function runPromise() {
+        const [one, two, three, ...rest] = await new Promise<Iterable<number>>(
+            (resolve, reject) => thing.then(resolve, reject)
+        );
+        console.log({ one, two, three, rest });
+    }
     async function runAsync() {
         const [one, two, three, ...rest] = await anAsyncThing(thing);
         console.log({ one, two, three, rest });
@@ -20,6 +26,7 @@ async function withThing(thing: TheSyncThing<number>) {
 
     runSync();
     await run();
+    await runPromise();
     await runAsync();
 
     console.log([ ...thing ]);
@@ -43,16 +50,16 @@ async function withThing(thing: TheSyncThing<number>) {
         }
     }
 
-    async function forSync() {
+    function forSync() {
         for (const next of thing) {
             console.log({ next });
         }
     }
 
     await forAwait();
-    await forSync();
+    forSync();
     await forAwait();
-    await forSync();
+    forSync();
 }
 
 await withThing(aSyncThing([1, 2, 3, 4]));
