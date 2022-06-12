@@ -1,17 +1,23 @@
-import {isAsyncIterable, isIterable} from "./is";
+import { isAsyncIterable, isIterable } from "./is";
 
-export type TheAsyncThing<T = unknown, PT = T> =
-  & Promise<PT>
-  & AsyncIterable<T>
-  & AsyncIterator<T, unknown, unknown>;
+export type TheAsyncThing<T = unknown, PT = T> = Promise<PT> &
+  AsyncIterable<T> &
+  AsyncIterator<T, unknown, unknown>;
 
-export type TheAsyncThingInput<T> = Partial<AsyncIterable<T> | AsyncIterator<T,  unknown> | Promise<T>>;
+export type TheAsyncThingInput<T> = Partial<
+  AsyncIterable<T> | AsyncIterator<T, unknown> | Promise<T>
+>;
 
-export function anAsyncThing<T>(async: TheAsyncThingInput<T>): TheAsyncThing<T, T>
-export function anAsyncThing<T, I extends Iterable<T>>(sync: I): TheAsyncThing<I, I>
-export function anAsyncThing<T>(async: TheAsyncThingInput<T>): TheAsyncThing<T, T>  {
-  let iterator: AsyncIterator<T, unknown, unknown>,
-      promise: Promise<T>;
+export function anAsyncThing<T>(
+  async: TheAsyncThingInput<T>
+): TheAsyncThing<T, T>;
+export function anAsyncThing<T, I extends Iterable<T>>(
+  sync: I
+): TheAsyncThing<I, I>;
+export function anAsyncThing<T>(
+  async: TheAsyncThingInput<T>
+): TheAsyncThing<T, T> {
+  let iterator: AsyncIterator<T, unknown, unknown>, promise: Promise<T>;
 
   const thing: TheAsyncThing<T, T> = {
     async then(resolve, reject) {
@@ -25,9 +31,11 @@ export function anAsyncThing<T>(async: TheAsyncThingInput<T>): TheAsyncThing<T, 
     },
     async *[Symbol.asyncIterator]() {
       if (isAsyncIterable<T>(async)) {
-        return yield * async;
+        return yield* async;
       } else if ("then" in async && async.then) {
-        yield await new Promise((resolve, reject) => async.then(resolve, reject));
+        yield await new Promise((resolve, reject) =>
+          async.then(resolve, reject)
+        );
       } else if (isSyncIterableValue(async)) {
         yield async;
       } else if ("next" in async && async.next) {
@@ -58,9 +66,9 @@ export function anAsyncThing<T>(async: TheAsyncThingInput<T>): TheAsyncThing<T, 
       return iterator.throw(...args);
     },
     get [Symbol.toStringTag]() {
-      return "TheAsyncThing"
-    }
-  }
+      return "TheAsyncThing";
+    },
+  };
   return thing;
 
   function getPromise(): Promise<T> {
@@ -71,12 +79,15 @@ export function anAsyncThing<T>(async: TheAsyncThingInput<T>): TheAsyncThing<T, 
         return new Promise((resolve, reject) => async.then(resolve, reject));
       }
       let value: T;
-      for await (value of thing) {}
+      for await (value of thing) {
+      }
       return value;
     }
   }
 
-  function isYieldedResult(value: IteratorResult<T>): value is IteratorYieldResult<T> {
+  function isYieldedResult(
+    value: IteratorResult<T>
+  ): value is IteratorYieldResult<T> {
     return !value.done;
   }
 }

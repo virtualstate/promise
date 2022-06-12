@@ -1,90 +1,78 @@
-import {isIterable} from "./is";
+import { isIterable } from "./is";
 
-type TheAsyncSyncThing<T = unknown> =
-    & AsyncIterable<Iterable<T>>
-    & Promise<Iterable<T>>
+type TheAsyncSyncThing<T = unknown> = AsyncIterable<Iterable<T>> &
+  Promise<Iterable<T>>;
 
-export type TheSyncThing<T = unknown> =
-  & TheAsyncSyncThing<T>
-  & Iterator<T, unknown, unknown>
-  & Partial<Iterable<T>>
+export type TheSyncThing<T = unknown> = TheAsyncSyncThing<T> &
+  Iterator<T, unknown, unknown> &
+  Partial<Iterable<T>>;
 
-export function aSyncThing<T, I extends Iterable<T>>(sync: I): TheSyncThing<T>
-export function aSyncThing<T>(sync: T): TheSyncThing<T>
+export function aSyncThing<T, I extends Iterable<T>>(sync: I): TheSyncThing<T>;
+export function aSyncThing<T>(sync: T): TheSyncThing<T>;
 export function aSyncThing<T>(sync: T): TheSyncThing {
   let iterator: Iterator<unknown, unknown, unknown>;
-
-  function resolvedPromise<V>(value: V): Promise<V> {
-    return {
-      async then(resolve, reject) {
-        void reject;
-        return resolve(value);
-      },
-      /* c8 ignore start */
-      async catch() {
-        throw new Error("promise.catch not supported with sync promise");
-      },
-      async finally() {
-        throw new Error("promise.finally not supported with sync promise");
-      },
-      get [Symbol.toStringTag]() {
-        return "SyncPromise"
-      }
-      /* c8 ignore end */
-    };
-  }
-
-  const doneResult: IteratorResult<T> = { done: true, value: undefined };
-
   const thing: TheSyncThing & Iterable<unknown> = {
-    then(resolve, reject) {
-      return getPromise().then(resolve, reject);
+    async then(resolve, reject) {
+      void reject;
+      return resolve(isIterable(sync) ? sync : makeIterableFromThing());
     },
-    catch(reject) {
-      return getPromise().catch(reject);
+    /* c8 ignore start */
+    async catch() {
+      throw new Error("promise.catch not supported with sync promise");
     },
-    finally(fn) {
-      return getPromise().finally(fn);
+    async finally() {
+      throw new Error("promise.finally not supported with sync promise");
     },
+    /* c8 ignore end */
     async *[Symbol.asyncIterator]() {
       if (isIterable(sync)) {
-        return yield sync;
-      }
-      yield {
-        *[Symbol.iterator]() {
-          yield * thing;
-        }
+        yield sync;
+      } else {
+        yield makeIterableFromSync();
       }
     },
     *[Symbol.iterator]() {
       if (isIterable(sync)) {
-        yield * sync;
+        yield* sync;
       } else {
         yield sync;
       }
     },
     next(...args: [] | [unknown]) {
-      iterator = iterator ?? thing[Symbol.iterator]();
+      iterator =
+        iterator ??
+        (isIterable(sync) ? sync[Symbol.iterator]() : thing[Symbol.iterator]());
       return iterator.next(...args);
     },
     return(...args: [] | [unknown]) {
-      const result: IteratorResult<unknown> = iterator?.return?.(...args) ?? doneResult;
+      const result: IteratorResult<unknown> = iterator?.return?.(...args);
       iterator = undefined;
-      return result;
+      return result ?? { done: true, value: undefined };
     },
     throw(...args: [] | [unknown]) {
-      const result: IteratorResult<unknown> = iterator?.throw?.(...args) ?? doneResult;
+      const result: IteratorResult<unknown> = iterator?.throw?.(...args);
       iterator = undefined;
-      return result;
+      return result ?? { done: true, value: undefined };
     },
     get [Symbol.toStringTag]() {
-      return "TheSyncThing"
-    }
-  }
+      return "TheSyncThing";
+    },
+  };
   return thing;
 
-  function getPromise() {
-    return resolvedPromise(isIterable(sync) ? sync : thing);
+  function makeIterableFromSync() {
+    return {
+      *[Symbol.iterator]() {
+        yield sync;
+      },
+    };
   }
 
+  function makeIterableFromThing() {
+    return {
+      *[Symbol.iterator]() {
+        yield* thing;
+      },
+    };
+  }
 }
