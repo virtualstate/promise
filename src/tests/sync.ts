@@ -42,7 +42,7 @@ async function withThing(thing: TheSyncThing<number>) {
                 console.log({ next });
             }
         }
-        for await (const snapshot of thing.async) {
+        for await (const snapshot of thing.async()) {
             for (const next of snapshot) {
                 console.log({ next });
             }
