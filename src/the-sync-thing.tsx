@@ -1,11 +1,15 @@
 
 import {isIterable} from "./is";
+import {anAsyncThing, TheAsyncThing} from "./the-thing";
 
 export type TheSyncThing<T = unknown> =
-  & AsyncIterable<Iterable<T>>
-  & Promise<Iterable<T>>
   & Iterable<T>
-  & Iterator<T, unknown, unknown>;
+  & Promise<Iterable<T>>
+  & AsyncIterable<Iterable<T>>
+  & Iterator<T, unknown, unknown>
+  & {
+    async: TheAsyncThing<Iterable<T>>
+  }
 
 export function aSyncThing<T, I extends Iterable<T>>(sync: I): TheSyncThing<T>
 export function aSyncThing<T>(sync: T): TheSyncThing<T>
@@ -35,6 +39,9 @@ export function aSyncThing<T>(sync: T): TheSyncThing {
   const doneResult: IteratorResult<T> = { done: true, value: undefined };
 
   const thing: TheSyncThing = {
+    get async() {
+      return anAsyncThing(thing);
+    },
     then(resolve, reject) {
       return getPromise().then(resolve, reject);
     },
