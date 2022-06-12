@@ -5,7 +5,9 @@ import {anAsyncThing} from "../the-thing";
 import {ok} from "../like";
 
 async function withThing(thing: TheSyncThing<number>) {
+
     function runSync() {
+        ok(isIterable(thing));
         const [one, two, three, ...rest] = thing;
         console.log({ one, two, three, rest });
     }
@@ -29,8 +31,7 @@ async function withThing(thing: TheSyncThing<number>) {
     await runPromise();
     await runAsync();
 
-    console.log([ ...thing ]);
-
+    console.log([ ...await thing ]);
 
     async function forAwait() {
 
@@ -42,7 +43,7 @@ async function withThing(thing: TheSyncThing<number>) {
                 console.log({ next });
             }
         }
-        for await (const snapshot of thing.async()) {
+        for await (const snapshot of thing) {
             for (const next of snapshot) {
                 console.log({ next });
             }
@@ -50,6 +51,7 @@ async function withThing(thing: TheSyncThing<number>) {
     }
 
     function forSync() {
+        ok(isIterable(thing));
         for (const next of thing) {
             console.log({ next });
         }
