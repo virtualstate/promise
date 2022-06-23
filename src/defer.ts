@@ -1,5 +1,5 @@
 /* c8 ignore start */
-import {ok} from "./like";
+import { ok } from "./like";
 
 export type DeferredStatus = "pending" | "fulfilled" | "rejected";
 
@@ -8,7 +8,7 @@ export interface Deferred<T = void> {
   reject(reason: unknown): void;
   promise: Promise<T>;
   readonly settled: boolean;
-  readonly status: DeferredStatus
+  readonly status: DeferredStatus;
 }
 
 export function defer<T = void>(): Deferred<T> {
@@ -22,9 +22,9 @@ export function defer<T = void>(): Deferred<T> {
       settled = true;
       resolveFn(value);
     };
-    reject = reason => {
+    reject = (reason) => {
       status = "rejected";
-      settled = true
+      settled = true;
       rejectFn(reason);
     };
   });
