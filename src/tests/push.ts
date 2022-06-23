@@ -1,8 +1,7 @@
 import { Push } from "../push";
 import { ok } from "../like";
-import {isIteratorYieldResult, isRejected} from "../is";
-import { queue } from "@virtualstate/examples/lib/examples/experiments/cached/queue";
-import {allSettled} from "../all-settled";
+import {isIterable, isIteratorYieldResult, isRejected} from "../is";
+import {anAsyncThing} from "../the-thing";
 
 {
   const push = new Push();
@@ -125,5 +124,34 @@ import {allSettled} from "../all-settled";
   const [status] = await Promise.allSettled([iterator.next()])
   ok(isRejected(status));
   ok(status.reason === "3")
+
+}
+
+{
+  const push = new Push();
+  const thing = anAsyncThing(push);
+
+  push.push(1);
+  push.push(2);
+  push.close();
+
+  const two = await thing;
+
+  ok(two === 2);
+
+}
+{
+  const push = new Push();
+  const thing = anAsyncThing(push);
+
+  push.push(1);
+  push.push(2);
+  push.push(3);
+  push.close();
+
+  for await (const snapshot of thing) {
+    console.log({ snapshot });
+    ok(snapshot === 1 || snapshot === 2 || snapshot === 3);
+  }
 
 }
