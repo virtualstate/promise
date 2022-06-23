@@ -26,6 +26,13 @@ export class Push<T> implements AsyncIterable<T> {
     this.wait = defer();
   }
 
+  throw(reason?: unknown) {
+    ok(!this.closed, "Already closed");
+    this.closed = this.pointer;
+    const current = this.values.get(this.pointer);
+    current.value.reject(reason);
+  }
+
   close() {
     ok(!this.closed, "Already closed");
     this.closed = this.pointer;

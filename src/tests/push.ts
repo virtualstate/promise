@@ -1,7 +1,8 @@
 import { Push } from "../push";
 import { ok } from "../like";
-import { isIteratorYieldResult } from "../is";
+import {isIteratorYieldResult, isRejected} from "../is";
 import { queue } from "@virtualstate/examples/lib/examples/experiments/cached/queue";
+import {allSettled} from "../all-settled";
 
 {
   const push = new Push();
@@ -110,4 +111,19 @@ import { queue } from "@virtualstate/examples/lib/examples/experiments/cached/qu
   ok(!isIteratorYieldResult(await donePromise));
 
   ok(!isIteratorYieldResult(await iterator.return()));
+}
+
+{
+  const push = new Push();
+  push.push(1);
+  push.push(2);
+  push.throw("3");
+  const iterator = push[Symbol.asyncIterator]();
+  ok(isIteratorYieldResult(await iterator.next()));
+  ok(isIteratorYieldResult(await iterator.next()));
+
+  const [status] = await Promise.allSettled([iterator.next()])
+  ok(isRejected(status));
+  ok(status.reason === "3")
+
 }

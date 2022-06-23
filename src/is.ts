@@ -1,3 +1,4 @@
+/* c8 ignore start */
 import { isLike } from "./like";
 
 export function isAsyncIterable<T>(value: unknown): value is AsyncIterable<T> {
@@ -22,4 +23,22 @@ export function isIteratorYieldResult<T>(
     typeof value.done === "boolean" &&
     !value.done
   );
+}
+
+export function isRejected(
+    value: PromiseSettledResult<unknown>
+): value is PromiseRejectedResult
+export function isRejected<R extends PromiseRejectedResult>(
+    value: PromiseSettledResult<unknown>
+): value is R
+export function isRejected<R extends PromiseRejectedResult>(
+    value: PromiseSettledResult<unknown>
+): value is R {
+  return value?.status === "rejected";
+}
+
+export function isFulfilled<T>(
+    value: PromiseSettledResult<T>
+): value is PromiseFulfilledResult<T> {
+  return value?.status === "fulfilled";
 }
