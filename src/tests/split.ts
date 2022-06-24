@@ -44,12 +44,59 @@ import {anAsyncThing} from "../the-thing";
         }
     });
 
+    for await (const snapshot of read) {
+        console.log({ snapshot });
+        ok(Array.isArray(snapshot));
+        ok(snapshot.length === 3);
+        ok(
+            (
+                snapshot[0] === 1 &&
+                snapshot[1] === 2 &&
+                snapshot[2] === 3
+            ) ||
+            (
+                snapshot[0] === 4 &&
+                snapshot[1] === 5 &&
+                snapshot[2] === 6
+            )
+        );
+    }
+
+}
+
+{
+    const read = split({
+        async* [Symbol.asyncIterator]() {
+            yield [1, 2, 3];
+            yield [4, 5, 6];
+        }
+    });
+
+    const result = await anAsyncThing(read);
+    console.log({ result });
+    ok(Array.isArray(result));
+    ok(result[0] === 4);
+    ok(result[1] === 5);
+    ok(result[2] === 6);
+
+}
+
+
+{
+    const read = split({
+        async* [Symbol.asyncIterator]() {
+            yield [1, 2, 3];
+            yield [4, 5, 6];
+        }
+    });
+
     const five = await anAsyncThing(read.filter(value => value === 5));
     console.log({ five });
     ok(Array.isArray(five));
     ok(five[0] === 5);
 
 }
+
 {
     const read = split({
         async* [Symbol.asyncIterator]() {
