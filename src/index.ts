@@ -5,3 +5,4 @@ export { Promise };
 export * from "./promise";
 export * from "./push";
 export * from "./defer";
+export * from "./split";

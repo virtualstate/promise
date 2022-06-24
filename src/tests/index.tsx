@@ -8,3 +8,4 @@ await import("./typed");
 await import("./downstream");
 await import("./sync");
 await import("./push");
+await import("./split");

@@ -11,8 +11,11 @@ export class Push<T> implements AsyncIterable<T> {
   private microtask: Promise<void> | undefined = undefined;
   private sameMicrotask: object[] = [];
 
+  private hold: object = {};
+
   constructor() {
     this._nextDeferred();
+    this.hold = this.pointer;
   }
 
   push(value: T) {
@@ -55,9 +58,14 @@ export class Push<T> implements AsyncIterable<T> {
   };
 
   [Symbol.asyncIterator](): AsyncIterator<T> {
-    let pointer = this.sameMicrotask.includes(this.pointer)
-      ? this.sameMicrotask[0]
-      : this.pointer;
+    let pointer =
+        this.hold ?? (
+                this.sameMicrotask.includes(this.pointer)
+                    ? this.sameMicrotask[0]
+                    : this.pointer
+            )
+        ;
+    this.hold = undefined;
     const values = this.values;
     const resolved = new WeakSet();
 
