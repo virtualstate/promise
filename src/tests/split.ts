@@ -1,6 +1,7 @@
 import { split } from "../split";
 import {ok} from "../like";
 import {anAsyncThing} from "../the-thing";
+import {union} from "@virtualstate/union";
 
 {
     const [a, b, c] = split({
@@ -189,4 +190,40 @@ import {anAsyncThing} from "../the-thing";
     const [first,last] = read.filter(value => value % 2 === 0);
     ok(await first === 4);
     ok(await last === 6);
+}
+{
+    const [first, middle, last] = split({
+        async* [Symbol.asyncIterator]() {
+            yield [1, 2, 3];
+            yield [4, 5, 6];
+        }
+    });
+
+    const joined = await anAsyncThing(union([first, middle, last]))
+
+    console.log({ joined });
+
+    ok(joined.length === 3);
+    ok(joined[0] === 4);
+    ok(joined[1] === 5);
+    ok(joined[2] === 6);
+
+}
+{
+    const [first, middle, last] = split({
+        async* [Symbol.asyncIterator]() {
+            yield [1, 2, 3];
+            yield [4, 5, 6];
+        }
+    });
+
+    const mixed = await anAsyncThing(union([middle, last, first]))
+
+    console.log({ mixed });
+
+    ok(mixed.length === 3);
+    ok(mixed[0] === 5);
+    ok(mixed[1] === 6);
+    ok(mixed[2] === 4);
+
 }
