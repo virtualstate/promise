@@ -2,6 +2,10 @@ import { WeakLinkedList } from "./weak-linked-list";
 import { defer, Deferred } from "../defer";
 import { ok } from "../like";
 
+export interface PushOptions {
+  keep?: boolean
+}
+
 export class Push<T> implements AsyncIterable<T> {
   private values = new WeakLinkedList<Deferred<T>>();
   private pointer: object = {};
@@ -11,11 +15,11 @@ export class Push<T> implements AsyncIterable<T> {
   private microtask: Promise<void> | undefined = undefined;
   private sameMicrotask: object[] = [];
 
-  private hold: object = {};
+  private hold: object;
 
-  constructor() {
-    this._nextDeferred();
+  constructor(private options?: PushOptions) {
     this.hold = this.pointer;
+    this._nextDeferred();
   }
 
   push(value: T) {
@@ -47,6 +51,14 @@ export class Push<T> implements AsyncIterable<T> {
     const deferred = defer<T>();
     this.values.insert(this.previous, this.pointer, deferred);
     void deferred.promise.catch((error) => void error);
+    // If we have no other pointers in this microtask
+    // we will queue a task for them to be cleared
+    // This allows for fading of pointers on a task by task
+    // basis, while not keeping them around longer than they
+    // need to be
+    //
+    // An async iterator created in the same microtask as a pointer
+    // will be able to access that pointer
     this.sameMicrotask.push(this.pointer);
     if (!this.microtask) {
       this.microtask = (async () => {
@@ -58,6 +70,13 @@ export class Push<T> implements AsyncIterable<T> {
   };
 
   [Symbol.asyncIterator](): AsyncIterator<T> {
+    // Setting hold to undefined clears the initial pointer
+    // available meaning this push instance's weak list can
+    // start to forget deferred values
+    //
+    // If a pointer is available in sameMicrotask, or
+    // an iterator as a pointer still, the pointers
+    // value will still be available
     let pointer =
         this.hold ?? (
                 this.sameMicrotask.includes(this.pointer)
@@ -65,7 +84,9 @@ export class Push<T> implements AsyncIterable<T> {
                     : this.pointer
             )
         ;
-    this.hold = undefined;
+    if (!this.options?.keep) {
+      this.hold = undefined;
+    }
     const values = this.values;
     const resolved = new WeakSet();
 
