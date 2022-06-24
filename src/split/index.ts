@@ -9,9 +9,14 @@ export interface SplitOptions extends PushOptions {
 export interface FilterFn<T> {
     (value: T): boolean
 }
+export interface FilterIsFn<T, Z extends T> {
+    (value: T): value is Z
+}
 
 export interface Split<T> extends Iterable<TheAsyncThing<T>>, AsyncIterable<T[]> {
     filter(value: FilterFn<T>): Split<T>
+    filter<Z extends T>(value: FilterIsFn<T, Z>): Split<Z>
+    filter<Z>(value: FilterIsFn<unknown, Z>): Split<Z>
 }
 
 export function split<T>(input: AsyncIterable<T[]>, options?: SplitOptions): Split<T> {
@@ -68,14 +73,19 @@ export function split<T>(input: AsyncIterable<T[]>, options?: SplitOptions): Spl
         done = true;
     }
 
-    function getOutput<Z>(target: Push<Z>): TheAsyncThing<Z> {
-        return anAsyncThing({
+    function getAsyncIterableOutput<Z>(target: Push<Z>): AsyncIterable<Z> {
+        return {
             async *[Symbol.asyncIterator]() {
                 const promise = start();
                 yield * target;
                 await promise;
             }
-        });
+        };
+    }
+    function getOutput<Z>(target: Push<Z>): TheAsyncThing<Z> {
+        return anAsyncThing(
+            getAsyncIterableOutput(target)
+        );
     }
 
     function getTarget(index: number) {
@@ -88,21 +98,22 @@ export function split<T>(input: AsyncIterable<T[]>, options?: SplitOptions): Spl
         return getOutput(target);
     }
 
-    return {
+    return new class Split<Z extends T> implements Split<Z> {
+
         async *[Symbol.asyncIterator]() {
           mainTarget = mainTarget ?? new Push(options);
-          const promise = start();
-          yield * mainTarget;
-          await promise;
-        },
+          yield * getAsyncIterableOutput(mainTarget);
+        }
+
         [Symbol.iterator]() {
             function * withIndex(index: number): Iterable<TheAsyncThing<T>> {
                 yield getTarget(index);
                 yield * withIndex(index + 1);
             }
             return withIndex(0)[Symbol.iterator]();
-        },
-        filter(fn) {
+        }
+
+        filter(fn: FilterFn<T>) {
             const existing = splits.get(fn);
             if (existing) {
                 return existing;
