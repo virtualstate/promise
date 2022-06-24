@@ -105,12 +105,27 @@ import {anAsyncThing} from "../the-thing";
     for await (const even of first) {
         console.log({ even });
         ok(typeof even === "number");
-        ok(even !== 1);
-        ok(even !== 3);
-        ok(even !== 5);
-        ok(even !== 6);
         ok(
             even === 2 || even === 4
+        );
+    }
+
+}
+{
+    const read = split({
+        async* [Symbol.asyncIterator]() {
+            yield [1, 2, 3];
+            yield [4, 5, 6];
+        }
+    });
+
+    const [,last] = read.filter(value => value % 2 === 0);
+
+    for await (const even of last) {
+        console.log({ even });
+        ok(typeof even === "number");
+        ok(
+            even === 6
         );
     }
 
@@ -125,7 +140,6 @@ import {anAsyncThing} from "../the-thing";
     });
 
     const [first,last] = read.filter(value => value % 2 === 0);
-
     ok(await first === 4);
     ok(await last === 6);
 }
