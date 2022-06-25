@@ -2,8 +2,10 @@ import {anAsyncThing, TheAsyncThing} from "../the-thing";
 import {Push, PushOptions} from "../push";
 import {ok} from "../like";
 
-export interface SplitOptions extends PushOptions {
+type Name = unknown;
 
+export interface SplitOptions<T> extends PushOptions {
+   name?(value: T): Name;
 }
 
 export interface FilterFn<T> {
@@ -17,12 +19,18 @@ export interface Split<T> extends Iterable<TheAsyncThing<T>>, AsyncIterable<T[]>
     filter(value: FilterFn<T>): Split<T>
     filter<Z extends T>(value: FilterIsFn<T, Z>): Split<Z>
     filter<Z>(value: FilterIsFn<unknown, Z>): Split<Z>
+    named(name: Name): Split<T>
 }
 
-export function split<T>(input: AsyncIterable<T[]>, options?: SplitOptions): Split<T> {
+function identity(value: unknown) {
+    return value;
+}
+
+export function split<T>(input: AsyncIterable<T[]>, options?: SplitOptions<T>): Split<T> {
     const targets: Push<T>[] = [],
         filter = new Map<FilterFn<T>, Push<T[]>>(),
-        splits = new Map<FilterFn<T>, Split<T>>();
+        splits = new Map<FilterFn<T>, Split<T>>(),
+        namedFilter = new Map<Name, FilterFn<T>>();
 
     let mainTarget: Push<T[]> | undefined = undefined;
 
@@ -123,6 +131,18 @@ export function split<T>(input: AsyncIterable<T[]>, options?: SplitOptions): Spl
             const output = split(getOutput(target));
             splits.set(fn, output);
             return output;
+        }
+
+        named(name: Name) {
+            let nameFn = namedFilter.get(name);
+            if (!nameFn) {
+                const getName = options?.name ?? identity;
+                nameFn = (value) => {
+                    return getName(value) === name
+                };
+                namedFilter.set(name, nameFn);
+            }
+            return this.filter(nameFn);
         }
     }
 }

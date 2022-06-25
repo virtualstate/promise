@@ -281,3 +281,47 @@ import {union} from "@virtualstate/union";
     }
 
 }
+
+{
+    const [ones] = await split({
+        async* [Symbol.asyncIterator]() {
+            yield [1, 2, 3];
+            yield [4, 5, 6];
+            yield [1, 2, 3];
+        }
+    })
+        .named(1);
+
+    let total = 0;
+    for await (const one of ones) {
+        console.log({ one });
+        total += 1;
+        ok(one === 1);
+    }
+    ok(total === 2);
+}
+{
+    const [twos] = await split(
+        {
+            async* [Symbol.asyncIterator]() {
+                yield [1, 2, 3];
+                yield [4, 5, 6];
+                yield [1, 2, 3];
+            }
+        },
+        {
+            name(value) {
+                return value === 2 ? "two" : "unknown";
+            }
+        }
+    )
+        .named("two");
+
+    let total = 0;
+    for await (const two of twos) {
+        console.log({ two });
+        total += 1;
+        ok(two === 2);
+    }
+    ok(total === 2);
+}
