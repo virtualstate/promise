@@ -227,3 +227,57 @@ import {union} from "@virtualstate/union";
     ok(mixed[2] === 4);
 
 }
+
+{
+    const [first, middle, last] = split({
+        async* [Symbol.asyncIterator]() {
+            yield [1, 2, 3];
+            yield [4, 5, 6];
+        }
+    });
+
+    for await (const snapshot of union([middle, last, first])) {
+        console.log({ snapshot });
+        ok(Array.isArray(snapshot));
+        ok(snapshot.length === 3);
+        ok(
+            (
+                snapshot[0] === 2 &&
+                snapshot[1] === 3 &&
+                snapshot[2] === 1
+            ) ||
+            (
+                snapshot[0] === 5 &&
+                snapshot[1] === 6 &&
+                snapshot[2] === 4
+            )
+        );
+    }
+
+}
+
+{
+    const [first,, last] = split({
+        async* [Symbol.asyncIterator]() {
+            yield [1, 2, 3];
+            yield [4, 5, 6];
+        }
+    });
+
+    for await (const snapshot of union([last, first])) {
+        console.log({ snapshot });
+        ok(Array.isArray(snapshot));
+        ok(snapshot.length === 2);
+        ok(
+            (
+                snapshot[0] === 3 &&
+                snapshot[1] === 1
+            ) ||
+            (
+                snapshot[0] === 6 &&
+                snapshot[1] === 4
+            )
+        );
+    }
+
+}
