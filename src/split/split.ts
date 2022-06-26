@@ -90,18 +90,18 @@ function createSplitContext<T>(
       }
       mainTarget?.close();
       for (const target of targets) {
-        target.close();
+        target?.close();
       }
       for (const target of filter.values()) {
-        target.close();
+        target?.close();
       }
     } catch (error) {
       mainTarget?.throw(error);
       for (const target of targets) {
-        target.throw(error);
+        target?.throw(error);
       }
       for (const target of filter.values()) {
-        target.throw(error);
+        target?.throw(error);
       }
     }
     done = true;
@@ -117,7 +117,8 @@ function createSplitContext<T>(
     };
   }
   function getOutput<Z>(target: Push<Z>): TheAsyncThing<Z> {
-    return anAsyncThing(getAsyncIterableOutput(target));
+    const async = getAsyncIterableOutput(target);
+    return anAsyncThing(async);
   }
 
   function getTargetOutput(index: number) {
@@ -192,6 +193,7 @@ function createSplitContext<T>(
     getFilterOutput,
     getNamedFilterTargetOutput,
     getNamedFilterOutput,
+    getTargetOutput,
     source,
     call,
     bind,
@@ -247,6 +249,11 @@ export function split<T>(
             return context.getNamedFilterOutput(name, options);
           },
         },
+        at: {
+          value(index: number) {
+            return context.getTargetOutput(index);
+          },
+        },
         toArray: {
           value: async.then.bind(async),
         },
@@ -285,7 +292,10 @@ export function split<T>(
       named(name: Name) {
         return context.getNamedFilterOutput(name, options);
       }
-      async toArray(): Promise<T[]> {
+      at(index: number) {
+        return context.getTargetOutput(index);
+      }
+      toArray() {
         return async;
       }
       call(that: unknown, ...args: unknown[]) {

@@ -25,8 +25,9 @@ export interface Split<T>
   filter(value: FilterFn<T>): Split<T>;
   filter<Z extends T>(value: FilterIsFn<T, Z>): Split<Z>;
   filter<Z>(value: FilterIsFn<unknown, Z>): Split<Z>;
+  at(index: number): TheAsyncThing<T>;
+  toArray(): TheAsyncThing<T[]>;
   named(name: Name): Split<T>;
-  toArray(): Promise<T[]>;
   call(this: unknown, ...args: unknown[]): Split<T>;
   bind(this: unknown, ...args: unknown[]): SplitFn<T>;
 }

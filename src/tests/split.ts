@@ -139,6 +139,25 @@ import { union } from "@virtualstate/union";
     ok(even === 2 || even === 4);
   }
 }
+
+
+{
+  const read = split({
+    async *[Symbol.asyncIterator]() {
+      yield [1, 2, 3];
+      yield [4, 5, 6];
+    },
+  });
+
+  const first = read.filter((value) => value % 2 === 0).at(0);
+
+  for await (const even of first) {
+    console.log({ even });
+    ok(typeof even === "number");
+    ok(even === 2 || even === 4);
+  }
+}
+
 {
   const read = split({
     async *[Symbol.asyncIterator]() {
@@ -155,6 +174,7 @@ import { union } from "@virtualstate/union";
     ok(even === 6);
   }
 }
+
 {
   const [, last] = await split({
     async *[Symbol.asyncIterator]() {
@@ -162,6 +182,17 @@ import { union } from "@virtualstate/union";
       yield [4, 5, 6];
     },
   }).filter((value) => value % 2 === 0);
+  console.log({ last });
+  ok(typeof last === "number");
+  ok(last === 6);
+}
+{
+  const last = await split({
+    async *[Symbol.asyncIterator]() {
+      yield [1, 2, 3];
+      yield [4, 5, 6];
+    },
+  }).filter((value) => value % 2 === 0).at(1)
   console.log({ last });
   ok(typeof last === "number");
   ok(last === 6);
@@ -291,20 +322,61 @@ import { union } from "@virtualstate/union";
   ok(total === 2);
 }
 {
-  const [twos] = split(
-    {
-      async *[Symbol.asyncIterator]() {
-        yield [1, 2, 3];
-        yield [4, 5, 6];
-        yield [1, 2, 3];
-      },
+  const ones = split({
+    async *[Symbol.asyncIterator]() {
+      yield [1, 2, 3];
+      yield [4, 5, 6];
+      yield [1, 2, 3];
     },
-    {
-      name(value) {
-        return value === 2 ? "two" : "unknown";
+  }).named(1).at(0);
+
+  let total = 0;
+  for await (const one of ones) {
+    console.log({ one });
+    total += 1;
+    ok(one === 1);
+  }
+  ok(total === 2);
+}
+{
+  const [twos] = split(
+      {
+        async *[Symbol.asyncIterator]() {
+          yield [1, 2, 3];
+          yield [4, 5, 6];
+          yield [1, 2, 3];
+        },
       },
-    }
+      {
+        name(value) {
+          return value === 2 ? "two" : "unknown";
+        },
+      }
   ).named("two");
+
+  let total = 0;
+  for await (const two of twos) {
+    console.log({ two });
+    total += 1;
+    ok(two === 2);
+  }
+  ok(total === 2);
+}
+{
+  const twos = split(
+      {
+        async *[Symbol.asyncIterator]() {
+          yield [1, 2, 3];
+          yield [4, 5, 6];
+          yield [1, 2, 3];
+        },
+      },
+      {
+        name(value) {
+          return value === 2 ? "two" : "unknown";
+        },
+      }
+  ).named("two").at(0);
 
   let total = 0;
   for await (const two of twos) {
