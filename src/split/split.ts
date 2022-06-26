@@ -30,7 +30,7 @@ function createSplitContext<T>(
   input: SplitInput<T>,
   options?: SplitOptions<T>
 ): SplitAsyncIterable<T> {
-  const targets: Push<T>[] = [],
+  const targets = new Map<number, Push<T>>(),
     filters = new Map<FilterFn<T>, Push<T[]>>(),
     namedFilter = new Map<Name, FilterFn<T>>();
 
@@ -79,7 +79,7 @@ function createSplitContext<T>(
           : [snapshotInput];
         mainTarget?.push(snapshot);
         for (const [index, value] of Object.entries(snapshot)) {
-          targets[+index]?.push(value);
+          targets.get(+index)?.push(value);
         }
         for (const [fn, target] of filters.entries()) {
           const filtered = snapshot.filter(fn);
@@ -88,7 +88,7 @@ function createSplitContext<T>(
         }
       }
       mainTarget?.close();
-      for (const target of targets) {
+      for (const target of targets.values()) {
         target?.close();
       }
       for (const target of filters.values()) {
@@ -96,7 +96,7 @@ function createSplitContext<T>(
       }
     } catch (error) {
       mainTarget?.throw(error);
-      for (const target of targets) {
+      for (const target of targets.values()) {
         target?.throw(error);
       }
       for (const target of filters.values()) {
@@ -121,12 +121,12 @@ function createSplitContext<T>(
   }
 
   function at(index: number) {
-    const existing = targets[index];
+    const existing = targets.get(index);
     if (existing) {
       return getOutput(existing);
     }
     const target = new Push<T>(options);
-    targets[index] = target;
+    targets.set(index, target);
     return getOutput(target);
   }
 
