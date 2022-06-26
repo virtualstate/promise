@@ -1,6 +1,5 @@
 import { split } from "../split";
 import { ok } from "../like";
-import { anAsyncThing } from "../the-thing";
 import { union } from "@virtualstate/union";
 
 {
@@ -64,7 +63,7 @@ import { union } from "@virtualstate/union";
     },
   });
 
-  const result = await anAsyncThing(read);
+  const result = await read;
   console.log({ result });
   ok(Array.isArray(result));
   ok(result[0] === 4);
@@ -80,7 +79,7 @@ import { union } from "@virtualstate/union";
     },
   });
 
-  const five = await anAsyncThing(read.filter((value) => value === 5));
+  const five = await read.filter((value) => value === 5);
   console.log({ five });
   ok(Array.isArray(five));
   ok(five[0] === 5);
@@ -94,7 +93,7 @@ import { union } from "@virtualstate/union";
     },
   });
 
-  const even = await anAsyncThing(read.filter((value) => value % 2 === 0));
+  const even = await read.filter((value) => value % 2 === 0);
   console.log({ even });
   ok(Array.isArray(even));
   ok(!even.includes(2)); // Only includes the final snapshot
@@ -156,6 +155,43 @@ import { union } from "@virtualstate/union";
     ok(even === 6);
   }
 }
+{
+  const [, last] = await split({
+    async *[Symbol.asyncIterator]() {
+      yield [1, 2, 3];
+      yield [4, 5, 6];
+    },
+  }).filter((value) => value % 2 === 0);
+  console.log({ last });
+  ok(typeof last === "number");
+  ok(last === 6);
+}
+
+{
+  const [a, b, c] = await split({
+    async *[Symbol.asyncIterator]() {
+      yield [1, 2, 3];
+      yield [4, 5, 6];
+    },
+  });
+  console.log({ a, b, c });
+  ok(a === 4);
+  ok(b === 5);
+  ok(c === 6);
+}
+
+{
+  const [a, b, c] = split({
+    async *[Symbol.asyncIterator]() {
+      yield [1, 2, 3];
+      yield [4, 5, 6];
+    },
+  });
+  console.log({ a, b, c });
+  ok((await a) === 4);
+  ok((await b) === 5);
+  ok((await c) === 6);
+}
 
 {
   const read = split({
@@ -177,14 +213,12 @@ import { union } from "@virtualstate/union";
     },
   });
 
-  const joined = await anAsyncThing(union([first, middle, last]));
+  const [a, b, c] = split(union([first, middle, last]));
 
-  console.log({ joined });
 
-  ok(joined.length === 3);
-  ok(joined[0] === 4);
-  ok(joined[1] === 5);
-  ok(joined[2] === 6);
+  ok(await a === 4);
+  ok(await b === 5);
+  ok(await c === 6);
 }
 {
   const [first, middle, last] = split({
@@ -194,14 +228,11 @@ import { union } from "@virtualstate/union";
     },
   });
 
-  const mixed = await anAsyncThing(union([middle, last, first]));
+  const [a, b, c] = split(union([middle, last, first]));
 
-  console.log({ mixed });
-
-  ok(mixed.length === 3);
-  ok(mixed[0] === 5);
-  ok(mixed[1] === 6);
-  ok(mixed[2] === 4);
+  ok(await a === 5);
+  ok(await b === 6);
+  ok(await c === 4);
 }
 
 {
@@ -282,4 +313,42 @@ import { union } from "@virtualstate/union";
     ok(two === 2);
   }
   ok(total === 2);
+}
+{
+  const [two] = await split(
+    {
+      async *[Symbol.asyncIterator]() {
+        yield [1, 2, 3];
+        yield [4, 5, 6];
+        yield [1, 2, 3];
+      },
+    },
+    {
+      name(value) {
+        return value === 2 ? "two" : "unknown";
+      },
+    }
+  ).named("two");
+  console.log({ two });
+  ok(two === 2);
+}
+
+{
+  const [twos] = split(
+    {
+      async *[Symbol.asyncIterator]() {
+        yield [1, 2, 3];
+        yield [4, 5, 6];
+        yield [1, 2, 3];
+      },
+    },
+    {
+      name(value) {
+        return value === 2 ? "two" : "unknown";
+      },
+    }
+  ).named("two");
+  const two = await twos;
+  console.log({ two });
+  ok(two === 2);
 }

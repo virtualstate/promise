@@ -211,6 +211,8 @@ export function split<T>(
   options?: SplitOptions<T>
 ): Split<T> {
   const context = createSplitContext<T>(input, options);
+  const async = anAsyncThing(context);
+
   if (typeof input === "function") {
     return createFn();
   } else {
@@ -245,12 +247,32 @@ export function split<T>(
             return context.getNamedFilterOutput(name, options);
           },
         },
+        toArray: {
+          value: async.then.bind(async),
+        },
+        then: {
+          value: async.then.bind(async),
+        },
+        catch: {
+          value: async.catch.bind(async),
+        },
+        finally: {
+          value: async.finally.bind(async),
+        },
       });
     }
   }
 
   function createInstance() {
-    class SplitAsyncIterable implements Split<T> {
+    class SplitAsyncIterable implements Split<T>, Promise<T[]> {
+      then: Promise<T[]>["then"] = async.then.bind(async);
+      catch: Promise<T[]>["catch"] = async.catch.bind(async);
+      finally: Promise<T[]>["finally"] = async.finally.bind(async);
+
+      get [Symbol.toStringTag]() {
+        return `[object ${SplitAsyncIterable.name}]`;
+      }
+
       get [Symbol.asyncIterator]() {
         return context[Symbol.asyncIterator];
       }
@@ -262,6 +284,9 @@ export function split<T>(
       }
       named(name: Name) {
         return context.getNamedFilterOutput(name, options);
+      }
+      async toArray(): Promise<T[]> {
+        return async;
       }
       call(that: unknown, ...args: unknown[]) {
         return split(

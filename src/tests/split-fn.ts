@@ -128,7 +128,6 @@ async function* Times(times?: number) {
 {
   const [eights] = split(Times, {
     name(value) {
-      console.log({ value });
       return value === 8 ? "eight" : "unknown";
     },
   })(3).named("eight");
@@ -141,4 +140,13 @@ async function* Times(times?: number) {
   }
   console.log({ total });
   ok(total === 1);
+}
+
+{
+  const [eight] = await split(Times, {
+    name(value) {
+      return value === 8 ? "eight" : "unknown";
+    },
+  })(3).named("eight");
+  ok(eight === 8);
 }
