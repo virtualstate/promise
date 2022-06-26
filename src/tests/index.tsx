@@ -9,3 +9,4 @@ await import("./downstream");
 await import("./sync");
 await import("./push");
 await import("./split");
+await import("./split-fn");

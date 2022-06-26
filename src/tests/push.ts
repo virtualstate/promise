@@ -1,7 +1,7 @@
 import { Push } from "../push";
 import { ok } from "../like";
-import {isIterable, isIteratorYieldResult, isRejected} from "../is";
-import {anAsyncThing} from "../the-thing";
+import { isIterable, isIteratorYieldResult, isRejected } from "../is";
+import { anAsyncThing } from "../the-thing";
 
 {
   const push = new Push();
@@ -121,10 +121,9 @@ import {anAsyncThing} from "../the-thing";
   ok(isIteratorYieldResult(await iterator.next()));
   ok(isIteratorYieldResult(await iterator.next()));
 
-  const [status] = await Promise.allSettled([iterator.next()])
+  const [status] = await Promise.allSettled([iterator.next()]);
   ok(isRejected(status));
-  ok(status.reason === "3")
-
+  ok(status.reason === "3");
 }
 
 {
@@ -138,7 +137,6 @@ import {anAsyncThing} from "../the-thing";
   const two = await thing;
 
   ok(two === 2);
-
 }
 {
   const push = new Push();
@@ -153,5 +151,4 @@ import {anAsyncThing} from "../the-thing";
     console.log({ snapshot });
     ok(snapshot === 1 || snapshot === 2 || snapshot === 3);
   }
-
 }

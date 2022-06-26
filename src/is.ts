@@ -26,19 +26,19 @@ export function isIteratorYieldResult<T>(
 }
 
 export function isRejected(
-    value: PromiseSettledResult<unknown>
-): value is PromiseRejectedResult
+  value: PromiseSettledResult<unknown>
+): value is PromiseRejectedResult;
 export function isRejected<R extends PromiseRejectedResult>(
-    value: PromiseSettledResult<unknown>
-): value is R
+  value: PromiseSettledResult<unknown>
+): value is R;
 export function isRejected<R extends PromiseRejectedResult>(
-    value: PromiseSettledResult<unknown>
+  value: PromiseSettledResult<unknown>
 ): value is R {
   return value?.status === "rejected";
 }
 
 export function isFulfilled<T>(
-    value: PromiseSettledResult<T>
+  value: PromiseSettledResult<T>
 ): value is PromiseFulfilledResult<T> {
   return value?.status === "fulfilled";
 }

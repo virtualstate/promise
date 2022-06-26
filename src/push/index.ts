@@ -3,7 +3,7 @@ import { defer, Deferred } from "../defer";
 import { ok } from "../like";
 
 export interface PushOptions {
-  keep?: boolean
+  keep?: boolean;
 }
 
 export class Push<T> implements AsyncIterable<T> {
@@ -78,12 +78,10 @@ export class Push<T> implements AsyncIterable<T> {
     // an iterator as a pointer still, the pointers
     // value will still be available
     let pointer =
-        this.hold ?? (
-                this.sameMicrotask.includes(this.pointer)
-                    ? this.sameMicrotask[0]
-                    : this.pointer
-            )
-        ;
+      this.hold ??
+      (this.sameMicrotask.includes(this.pointer)
+        ? this.sameMicrotask[0]
+        : this.pointer);
     if (!this.options?.keep) {
       this.hold = undefined;
     }
