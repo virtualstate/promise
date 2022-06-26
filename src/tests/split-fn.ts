@@ -126,15 +126,12 @@ async function* Times(times?: number) {
 }
 
 {
-  const [eights] = split(
-      Times,
-      {
-        name(value) {
-          console.log({ value });
-          return value === 8 ? "eight" : "unknown";
-        },
-      }
-  )(3).named("eight");
+  const [eights] = split(Times, {
+    name(value) {
+      console.log({ value });
+      return value === 8 ? "eight" : "unknown";
+    },
+  })(3).named("eight");
 
   let total = 0;
   for await (const eight of eights) {

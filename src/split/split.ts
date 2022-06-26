@@ -109,9 +109,9 @@ function createSplitContext<T>(
 
   function getAsyncIterableOutput<Z>(target: Push<Z>): AsyncIterable<Z> {
     return {
-      async * [Symbol.asyncIterator]() {
+      async *[Symbol.asyncIterator]() {
         const promise = start();
-        yield * target;
+        yield* target;
         await promise;
       },
     };
@@ -264,11 +264,14 @@ export function split<T>(
         return context.getNamedFilterOutput(name, options);
       }
       call(that: unknown, ...args: unknown[]) {
-        return split({
-          async *[Symbol.asyncIterator]() {
-            yield* context.call(that, ...args);
+        return split(
+          {
+            async *[Symbol.asyncIterator]() {
+              yield* context.call(that, ...args);
+            },
           },
-        }, options);
+          options
+        );
       }
       bind(that: unknown, ...args: unknown[]) {
         return split(context.bind(that, ...args), options);
