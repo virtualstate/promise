@@ -4,10 +4,10 @@ import { ok } from "../like";
 export type Name = unknown;
 
 export interface FilterFn<T> {
-  (value: T): boolean;
+  (value: T, index: number, array: T[]): boolean;
 }
 export interface FilterIsFn<T, Z extends T> {
-  (value: T): value is Z;
+  (value: T, index: number, array: T[]): value is Z;
 }
 
 export type SplitInputAsyncIterable<T> = AsyncIterable<T | T[]>;
