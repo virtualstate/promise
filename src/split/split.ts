@@ -4,12 +4,12 @@ import { ok } from "../like";
 import { isAsyncIterable } from "../is";
 import {
   FilterFn,
-  Split,
+  Split as SplitCore,
   Name,
   SplitInput,
   assertSplitInputFn,
   SplitFn,
-  SplitInputFn,
+  SplitInputFn, SplitAsyncIterable,
 } from "./type";
 
 export interface SplitProxyOptions {
@@ -29,10 +29,9 @@ function identity(value: unknown) {
 function createSplitContext<T>(
   input: SplitInput<T>,
   options?: SplitOptions<T>
-) {
+): SplitAsyncIterable<T> {
   const targets: Push<T>[] = [],
-    filter = new Map<FilterFn<T>, Push<T[]>>(),
-    splits = new Map<FilterFn<T>, Split<T>>(),
+    filters = new Map<FilterFn<T>, Push<T[]>>(),
     namedFilter = new Map<Name, FilterFn<T>>();
 
   let mainTarget: Push<T[]> | undefined = undefined;
@@ -82,7 +81,7 @@ function createSplitContext<T>(
         for (const [index, value] of Object.entries(snapshot)) {
           targets[+index]?.push(value);
         }
-        for (const [fn, target] of filter.entries()) {
+        for (const [fn, target] of filters.entries()) {
           const filtered = snapshot.filter(fn);
           if (!filtered.length) continue;
           target.push(filtered);
@@ -92,7 +91,7 @@ function createSplitContext<T>(
       for (const target of targets) {
         target?.close();
       }
-      for (const target of filter.values()) {
+      for (const target of filters.values()) {
         target?.close();
       }
     } catch (error) {
@@ -100,7 +99,7 @@ function createSplitContext<T>(
       for (const target of targets) {
         target?.throw(error);
       }
-      for (const target of filter.values()) {
+      for (const target of filters.values()) {
         target?.throw(error);
       }
     }
@@ -121,7 +120,7 @@ function createSplitContext<T>(
     return anAsyncThing(async);
   }
 
-  function getTargetOutput(index: number) {
+  function at(index: number) {
     const existing = targets[index];
     if (existing) {
       return getOutput(existing);
@@ -132,27 +131,17 @@ function createSplitContext<T>(
   }
 
   function getFilterTarget(fn: FilterFn<T>) {
-    const existing = filter.get(fn);
+    const existing = filters.get(fn);
     if (existing) {
       return existing;
     }
     const target = new Push<T[]>();
-    filter.set(fn, target);
+    filters.set(fn, target);
     return target;
   }
 
-  function getFilterTargetOutput(fn: FilterFn<T>) {
+  function filter(fn: FilterFn<T>) {
     return getOutput(getFilterTarget(fn));
-  }
-  function getFilterOutput(fn: FilterFn<T>, options?: SplitOptions<T>) {
-    const existing = splits.get(fn);
-    if (existing) {
-      return existing;
-    }
-    const target = getFilterTargetOutput(fn);
-    const output = split(target, options);
-    splits.set(fn, output);
-    return output;
   }
 
   function getNamedFilter(name: Name): FilterFn<T> {
@@ -167,14 +156,9 @@ function createSplitContext<T>(
     return nameFn;
   }
 
-  function getNamedFilterTargetOutput(name: Name) {
+  function named(name: Name) {
     const nameFn = getNamedFilter(name);
-    return getFilterTargetOutput(nameFn);
-  }
-
-  function getNamedFilterOutput(name: Name, options?: SplitOptions<T>) {
-    const nameFn = getNamedFilter(name);
-    return getFilterOutput(nameFn, options);
+    return filter(nameFn);
   }
 
   return {
@@ -184,20 +168,17 @@ function createSplitContext<T>(
     },
     [Symbol.iterator]() {
       function* withIndex(index: number): Iterable<TheAsyncThing<T>> {
-        yield getTargetOutput(index);
+        yield at(index);
         yield* withIndex(index + 1);
       }
       return withIndex(0)[Symbol.iterator]();
     },
-    getFilterTargetOutput,
-    getFilterOutput,
-    getNamedFilterTargetOutput,
-    getNamedFilterOutput,
-    getTargetOutput,
-    source,
+    filter,
+    named,
+    at,
     call,
     bind,
-  } as const;
+  };
 }
 
 export function split<T>(
@@ -207,11 +188,11 @@ export function split<T>(
 export function split<T>(
   input: SplitInput<T>,
   options?: SplitOptions<T>
-): Split<T>;
+): SplitCore<T>;
 export function split<T>(
   input: SplitInput<T>,
   options?: SplitOptions<T>
-): Split<T> {
+): SplitCore<T> {
   const context = createSplitContext<T>(input, options);
   const async = anAsyncThing(context);
 
@@ -241,77 +222,79 @@ export function split<T>(
         },
         filter: {
           value(fn: FilterFn<T>) {
-            return context.getFilterOutput(fn, options);
+            return split(context.filter(fn), options);
           },
         },
         named: {
           value(name: Name) {
-            return context.getNamedFilterOutput(name, options);
+            return split(context.named(name), options);
           },
         },
         at: {
-          value(index: number) {
-            return context.getTargetOutput(index);
-          },
+          value: context.at,
         },
         toArray: {
-          value: async.then.bind(async),
+          value: async.then,
         },
         then: {
-          value: async.then.bind(async),
+          value: async.then,
         },
         catch: {
-          value: async.catch.bind(async),
+          value: async.catch,
         },
         finally: {
-          value: async.finally.bind(async),
-        },
+          value: async.finally,
+        }
       });
     }
   }
 
   function createInstance() {
-    class SplitAsyncIterable implements Split<T>, Promise<T[]> {
+    class Split implements SplitCore<T>, Promise<T[]> {
       then: Promise<T[]>["then"] = async.then.bind(async);
       catch: Promise<T[]>["catch"] = async.catch.bind(async);
       finally: Promise<T[]>["finally"] = async.finally.bind(async);
 
       get [Symbol.toStringTag]() {
-        return `[object ${SplitAsyncIterable.name}]`;
+        return "[object Split]";
       }
 
       get [Symbol.asyncIterator]() {
         return context[Symbol.asyncIterator];
       }
+
       get [Symbol.iterator]() {
         return context[Symbol.iterator];
       }
+
+      get at() {
+        return context.at;
+      }
+
       filter(fn: FilterFn<T>) {
-        return context.getFilterOutput(fn, options);
+        return split(context.filter(fn), options);
       }
+
       named(name: Name) {
-        return context.getNamedFilterOutput(name, options);
+        return split(context.named(name), options);
       }
-      at(index: number) {
-        return context.getTargetOutput(index);
-      }
+
       toArray() {
         return async;
       }
+
       call(that: unknown, ...args: unknown[]) {
         return split(
-          {
-            async *[Symbol.asyncIterator]() {
-              yield* context.call(that, ...args);
-            },
-          },
+            context.call.bind(undefined, that, ...args),
           options
         );
       }
+
       bind(that: unknown, ...args: unknown[]) {
         return split(context.bind(that, ...args), options);
       }
+
     }
-    return new SplitAsyncIterable();
+    return new Split();
   }
 }

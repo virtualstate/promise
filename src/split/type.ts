@@ -18,9 +18,20 @@ export interface SplitInputFn<T> {
 
 export type SplitInput<T> = SplitInputAsyncIterable<T> | SplitInputFn<T>;
 
+export interface SplitAsyncIterable<T>
+    extends Iterable<TheAsyncThing<T>>,
+        AsyncIterable<T[]> {
+  filter(value: FilterFn<T>): AsyncIterable<T[]>;
+  filter<Z extends T>(value: FilterIsFn<T, Z>): AsyncIterable<Z[]>;
+  filter<Z>(value: FilterIsFn<unknown, Z>): AsyncIterable<Z[]>;
+  named(name: Name): AsyncIterable<T[]>;
+  at(index: number): TheAsyncThing<T>;
+  call(this: unknown, ...args: unknown[]): AsyncIterable<T[]>;
+  bind(this: unknown, ...args: unknown[]): (...args: unknown[]) => AsyncIterable<T | T[]>;
+}
+
 export interface Split<T>
-  extends Iterable<TheAsyncThing<T>>,
-    AsyncIterable<T[]>,
+  extends SplitAsyncIterable<T>,
     Promise<T[]> {
   filter(value: FilterFn<T>): Split<T>;
   filter<Z extends T>(value: FilterIsFn<T, Z>): Split<Z>;
