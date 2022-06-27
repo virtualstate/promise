@@ -1,7 +1,7 @@
 import { anAsyncThing, TheAsyncThing } from "../the-thing";
 import { Push, PushOptions } from "../push";
 import { isLike, ok } from "../like";
-import { isAsyncIterable, isPromise } from "../is";
+import {isAsyncIterable, isIterable, isPromise} from "../is";
 import {
   FilterFn,
   Split as SplitCore,
@@ -89,7 +89,9 @@ export function split<T>(
       ...args: unknown[]
     ): AsyncIterable<T[]> {
       for await (const snapshot of innerCall()) {
-        yield Array.isArray(snapshot) ? snapshot : [snapshot];
+        yield Array.isArray(snapshot) ? snapshot : (
+            isIterable(snapshot) ? Array.from(snapshot) : [snapshot]
+        );
       }
 
       async function* innerCall() {
