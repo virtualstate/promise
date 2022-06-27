@@ -456,3 +456,23 @@ import { union } from "@virtualstate/union";
   ok(total === 5);
 
 }
+
+{
+  const trues = await split(
+      {
+        async *[Symbol.asyncIterator]() {
+          yield [1, 2, 3];
+          yield [4, 5, 6];
+          yield [7, 8, 9];
+        },
+      }
+  )
+      .map(value => value >= 5)
+      .filter(Boolean)
+      .take(1)
+
+  console.log({ trues });
+
+  ok(trues.length === 2);
+
+}

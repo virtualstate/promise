@@ -60,6 +60,7 @@ export interface SplitAsyncIterable<T>
   filter<Z>(fn: FilterIsFn<unknown, Z>): AsyncIterable<Z[]>;
   named(name: Name): AsyncIterable<T[]>;
   map<M>(fn: MapFn<T, M>): AsyncIterable<M[]>;
+  take(count: number): AsyncIterable<T[]>;
   at(index: number): TheAsyncThing<T>;
   call(this: unknown, ...args: unknown[]): AsyncIterable<T[]>;
   bind(
@@ -74,6 +75,7 @@ export interface Split<T> extends SplitAsyncIterable<T>, Promise<T[]> {
   filter<Z>(fn: FilterIsFn<unknown, Z>): Split<Z>;
   at(index: number): TheAsyncThing<T>;
   map<M>(fn: MapFn<T, M>, options?: SplitOptions<M>): Split<M>;
+  take(count: number): Split<T>;
   toArray(): TheAsyncThing<T[]>;
   named(name: Name): Split<T>;
   call(this: unknown, ...args: unknown[]): Split<T>;

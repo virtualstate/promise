@@ -243,6 +243,17 @@ export function split<T>(
       }
     }
 
+    async function * take(count: number) {
+      let current = 0;
+      for await (const snapshot of source) {
+        yield snapshot;
+        current += 1;
+        if (current === count) {
+          break;
+        }
+      }
+    }
+
     return {
       async *[Symbol.asyncIterator](): AsyncIterableIterator<T[]> {
         mainTarget = mainTarget ?? new Push(options);
@@ -261,6 +272,7 @@ export function split<T>(
       at,
       call,
       bind,
+      take
     };
   }
 
@@ -290,6 +302,11 @@ export function split<T>(
         named: {
           value(name: Name) {
             return split(context.named(name), options);
+          },
+        },
+        take: {
+          value(count: number) {
+            return split(context.take(count), options);
           },
         },
         map: {
@@ -354,6 +371,10 @@ export function split<T>(
 
       named(name: Name) {
         return split(context.named(name), options);
+      }
+
+      take(count: number) {
+        return split(context.take(count), options);
       }
 
       map<M>(fn: MapFn<T, M>, otherOptions?: SplitOptions<M>) {
