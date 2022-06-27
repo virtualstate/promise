@@ -1,6 +1,6 @@
 import { anAsyncThing, TheAsyncThing } from "../the-thing";
 import { Push, PushOptions } from "../push";
-import { ok } from "../like";
+import {isLike, ok} from "../like";
 import { isAsyncIterable } from "../is";
 import {
   FilterFn,
@@ -16,11 +16,31 @@ export interface SplitProxyOptions {
   proxy: true;
 }
 
+export interface SplitAssertFn<T> {
+  (value: unknown): asserts value is T
+}
+export interface SplitIsFn<T> {
+  (value: unknown): value is T
+}
+
 export interface SplitOptions<T>
   extends PushOptions,
     Partial<SplitProxyOptions> {
   name?(value: T): Name;
+  assert?: SplitAssertFn<T>;
+  is?: SplitIsFn<T>;
 }
+
+export type TypedSplitOptions<T> =
+  SplitOptions<T> &
+    (
+        | {
+      is: SplitIsFn<T>
+    }
+        | {
+      assert: SplitAssertFn<T>
+    }
+);
 
 function identity(value: unknown) {
   return value;
@@ -77,11 +97,31 @@ function createSplitContext<T>(
     return readPromise;
   }
 
+  function shouldAssert() {
+    const { assert: fn, is } = options ?? {};
+    return !!(fn || is);
+  }
+
+  function assert(value: unknown): asserts value is T {
+    const { assert: fn, is } = options ?? {};
+    const fnAssert: SplitAssertFn<T> = isLike<SplitAssertFn<T>>(fn) ? fn : undefined;
+    if (fnAssert) {
+      fnAssert(value);
+    } else if (is) {
+      ok(is(value));
+    }
+  }
+
   async function read() {
     try {
       ok(!started);
       started = true;
       for await (const snapshot of source) {
+        if (shouldAssert()) {
+          for (const value of snapshot) {
+            assert(value);
+          }
+        }
         mainTarget?.push(snapshot);
         for (const [index, value] of Object.entries(snapshot)) {
           targets.get(+index)?.push(value);
@@ -193,12 +233,20 @@ function createSplitContext<T>(
 }
 
 export function split<T>(
+    input: SplitInputFn<unknown>,
+    options: TypedSplitOptions<T>
+): SplitFn<T>;
+export function split<T>(
+    input: SplitInput<unknown>,
+    options: TypedSplitOptions<T>
+): SplitCore<T>;
+export function split<T>(
   input: SplitInputFn<T>,
   options?: SplitOptions<T>
 ): SplitFn<T>;
 export function split<T>(
-  input: SplitInput<T>,
-  options?: SplitOptions<T>
+    input: SplitInput<T>,
+    options?: SplitOptions<T>
 ): SplitCore<T>;
 export function split<T>(
   input: SplitInput<T>,
