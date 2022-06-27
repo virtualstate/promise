@@ -9,7 +9,7 @@ import {
   SplitInput,
   assertSplitInputFn,
   SplitFn,
-  SplitInputFn, SplitAsyncIterable,
+  SplitInputFn, SplitAsyncIterable, isSplitAt,
 } from "./type";
 
 export interface SplitProxyOptions {
@@ -48,11 +48,19 @@ function createSplitContext<T>(
   }
 
   async function* call(that?: unknown, ...args: unknown[]): AsyncIterable<T[]> {
-    if (isAsyncIterable<T[]>(input)) {
-      yield* input;
-    } else {
-      assertSplitInputFn<T[]>(input);
-      yield* input.call(that, ...args);
+    for await (const snapshot of innerCall()) {
+      yield Array.isArray(snapshot)
+          ? snapshot
+          : [snapshot];
+    }
+
+    async function *innerCall() {
+      if (isAsyncIterable<T[]>(input)) {
+        yield* input;
+      } else {
+        assertSplitInputFn<T[]>(input);
+        yield* input.call(that, ...args);
+      }
     }
   }
 
@@ -73,10 +81,7 @@ function createSplitContext<T>(
     try {
       ok(!started);
       started = true;
-      for await (const snapshotInput of source) {
-        const snapshot = Array.isArray(snapshotInput)
-          ? snapshotInput
-          : [snapshotInput];
+      for await (const snapshot of source) {
         mainTarget?.push(snapshot);
         for (const [index, value] of Object.entries(snapshot)) {
           targets.get(+index)?.push(value);
@@ -121,6 +126,12 @@ function createSplitContext<T>(
   }
 
   function at(index: number) {
+    if (isSplitAt(input)) {
+      const result = input.at(index);
+      if (isAsyncIterable<T[]>(result)) {
+        return createSplitContext(result).at(0);
+      }
+    }
     const existing = targets.get(index);
     if (existing) {
       return getOutput(existing);
@@ -291,7 +302,7 @@ export function split<T>(
       }
 
       bind(that: unknown, ...args: unknown[]) {
-        return () => split(context.bind(that, ...args), options);
+        return split(context.bind(that, ...args), options)
       }
 
     }

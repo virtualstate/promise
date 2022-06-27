@@ -1,5 +1,5 @@
 import { TheAsyncThing } from "../the-thing";
-import { ok } from "../like";
+import {isLike, ok} from "../like";
 
 export type Name = unknown;
 
@@ -40,7 +40,7 @@ export interface Split<T>
   toArray(): TheAsyncThing<T[]>;
   named(name: Name): Split<T>;
   call(this: unknown, ...args: unknown[]): Split<T>;
-  bind(this: unknown, ...args: unknown[]): (...args: unknown[]) => Split<T>;
+  bind(this: unknown, ...args: unknown[]): SplitFn<T>;
 }
 
 export function assertSplitInputFn<T>(
@@ -53,4 +53,8 @@ export interface SplitFn<T> extends Split<T> {
   (this: unknown, ...args: unknown[]): SplitFn<T>;
   call(this: unknown, ...args: unknown[]): SplitFn<T>;
   bind(this: unknown, ...args: unknown[]): SplitFn<T>;
+}
+
+export function isSplitAt<T, S extends Split<T> = Split<T>>(value: unknown): value is Pick<S, "at"> {
+  return isLike<Split<T>>(value) && typeof value.at === "function";
 }
