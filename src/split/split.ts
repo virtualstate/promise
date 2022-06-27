@@ -117,11 +117,24 @@ export function split<T>(
       return readPromise;
     }
 
+    function close() {
+      if (done) return;
+      done = true;
+      mainTarget?.close();
+      for (const target of targets.values()) {
+        target?.close();
+      }
+      for (const target of filters.values()) {
+        target?.close();
+      }
+    }
+
     async function read() {
       try {
         ok(!started);
         started = true;
         for await (const snapshot of source) {
+          if (done) break;
           // If there is no length then the targets will not be invoked
           // It would be two different representations if we did anything different
           // for our main target too, so we will skip the entire update
@@ -139,13 +152,7 @@ export function split<T>(
             target.push(filtered);
           }
         }
-        mainTarget?.close();
-        for (const target of targets.values()) {
-          target?.close();
-        }
-        for (const target of filters.values()) {
-          target?.close();
-        }
+        close();
       } catch (error) {
         mainTarget?.throw(error);
         for (const target of targets.values()) {
@@ -256,6 +263,7 @@ export function split<T>(
           break;
         }
       }
+      close();
     }
 
     function find(fn: FilterFn<T>): TheAsyncThing<T> {
