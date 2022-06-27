@@ -117,13 +117,9 @@ function createSplitContext<T>(
       ok(!started);
       started = true;
       for await (const snapshot of source) {
-        if (shouldAssert()) {
-          for (const value of snapshot) {
-            assert(value);
-          }
-        }
         mainTarget?.push(snapshot);
         for (const [index, value] of Object.entries(snapshot)) {
+          assert(value);
           targets.get(+index)?.push(value);
         }
         for (const [fn, target] of filters.entries()) {
