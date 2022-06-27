@@ -476,3 +476,56 @@ import { union } from "@virtualstate/union";
   ok(trues.length === 2);
 
 }
+
+{
+  const result = await split(
+      {
+        async *[Symbol.asyncIterator]() {
+          yield [4, 5, 6];
+          yield [1, 8, 9];
+        },
+      }
+  )
+      .find(value => value >= 5)
+
+  console.log({ result });
+
+  ok(result === 8);
+
+}
+{
+  const result = await split(
+      {
+        async *[Symbol.asyncIterator]() {
+          yield [4, 5, 6];
+          yield [1, 8, 9];
+        },
+      }
+  )
+      .filter(value => value >= 5)
+      .take(1) // If we used 2 here, we would get 8 as a result
+      .at(0)
+
+  console.log({ result });
+
+  ok(result === 5);
+
+}
+{
+  const result = await split(
+      {
+        async *[Symbol.asyncIterator]() {
+          yield [4, 5, 6];
+          yield [1, 8, 9];
+        },
+      }
+  )
+      .filter(value => value >= 5)
+      .take(2)
+      .at(0)
+
+  console.log({ result });
+
+  ok(result === 8);
+
+}

@@ -123,6 +123,8 @@ export function split<T>(
           // If there is no length then the targets will not be invoked
           // It would be two different representations if we did anything different
           // for our main target too, so we will skip the entire update
+          //
+          // no filter.length will also skip a filter from being updated too
           if (!snapshot.length) continue;
           mainTarget?.push(snapshot);
           for (const [index, value] of Object.entries(snapshot)) {
@@ -254,6 +256,17 @@ export function split<T>(
       }
     }
 
+    function find(fn: FilterFn<T>): TheAsyncThing<T> {
+      const filtered = filter(fn);
+      return anAsyncThing({
+        async *[Symbol.asyncIterator]() {
+          for await (const [first] of filtered) {
+            yield first;
+          }
+        }
+      })
+    }
+
     return {
       async *[Symbol.asyncIterator](): AsyncIterableIterator<T[]> {
         mainTarget = mainTarget ?? new Push(options);
@@ -267,6 +280,7 @@ export function split<T>(
         return withIndex(0)[Symbol.iterator]();
       },
       filter,
+      find,
       named,
       map,
       at,
@@ -288,11 +302,12 @@ export function split<T>(
       Object.defineProperties(fn, {
         [Symbol.asyncIterator]: {
           value: context[Symbol.asyncIterator],
-          enumerable: false,
         },
         [Symbol.iterator]: {
           value: context[Symbol.iterator],
-          enumerable: false,
+        },
+        find: {
+          value: context.find,
         },
         filter: {
           value(fn: FilterFn<T>) {
@@ -363,6 +378,10 @@ export function split<T>(
 
       get at() {
         return context.at;
+      }
+
+      get find() {
+        return context.find;
       }
 
       filter(fn: FilterFn<T>) {
