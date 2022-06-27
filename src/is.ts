@@ -42,3 +42,7 @@ export function isFulfilled<T>(
 ): value is PromiseFulfilledResult<T> {
   return value?.status === "fulfilled";
 }
+
+export function isPromise<T>(value: unknown): value is Promise<T> {
+  return isLike<Promise<unknown>>(value) && typeof value.then === "function";
+}

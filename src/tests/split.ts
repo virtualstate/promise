@@ -140,7 +140,6 @@ import { union } from "@virtualstate/union";
   }
 }
 
-
 {
   const read = split({
     async *[Symbol.asyncIterator]() {
@@ -192,7 +191,9 @@ import { union } from "@virtualstate/union";
       yield [1, 2, 3];
       yield [4, 5, 6];
     },
-  }).filter((value) => value % 2 === 0).at(1)
+  })
+    .filter((value) => value % 2 === 0)
+    .at(1);
   console.log({ last });
   ok(typeof last === "number");
   ok(last === 6);
@@ -246,10 +247,9 @@ import { union } from "@virtualstate/union";
 
   const [a, b, c] = split(union([first, middle, last]));
 
-
-  ok(await a === 4);
-  ok(await b === 5);
-  ok(await c === 6);
+  ok((await a) === 4);
+  ok((await b) === 5);
+  ok((await c) === 6);
 }
 {
   const [first, middle, last] = split({
@@ -261,9 +261,9 @@ import { union } from "@virtualstate/union";
 
   const [a, b, c] = split(union([middle, last, first]));
 
-  ok(await a === 5);
-  ok(await b === 6);
-  ok(await c === 4);
+  ok((await a) === 5);
+  ok((await b) === 6);
+  ok((await c) === 4);
 }
 
 {
@@ -328,7 +328,9 @@ import { union } from "@virtualstate/union";
       yield [4, 5, 6];
       yield [1, 2, 3];
     },
-  }).named(1).at(0);
+  })
+    .named(1)
+    .at(0);
 
   let total = 0;
   for await (const one of ones) {
@@ -340,18 +342,18 @@ import { union } from "@virtualstate/union";
 }
 {
   const [twos] = split(
-      {
-        async *[Symbol.asyncIterator]() {
-          yield [1, 2, 3];
-          yield [4, 5, 6];
-          yield [1, 2, 3];
-        },
+    {
+      async *[Symbol.asyncIterator]() {
+        yield [1, 2, 3];
+        yield [4, 5, 6];
+        yield [1, 2, 3];
       },
-      {
-        name(value) {
-          return value === 2 ? "two" : "unknown";
-        },
-      }
+    },
+    {
+      name(value) {
+        return value === 2 ? "two" : "unknown";
+      },
+    }
   ).named("two");
 
   let total = 0;
@@ -364,19 +366,21 @@ import { union } from "@virtualstate/union";
 }
 {
   const twos = split(
-      {
-        async *[Symbol.asyncIterator]() {
-          yield [1, 2, 3];
-          yield [4, 5, 6];
-          yield [1, 2, 3];
-        },
+    {
+      async *[Symbol.asyncIterator]() {
+        yield [1, 2, 3];
+        yield [4, 5, 6];
+        yield [1, 2, 3];
       },
-      {
-        name(value) {
-          return value === 2 ? "two" : "unknown";
-        },
-      }
-  ).named("two").at(0);
+    },
+    {
+      name(value) {
+        return value === 2 ? "two" : "unknown";
+      },
+    }
+  )
+    .named("two")
+    .at(0);
 
   let total = 0;
   for await (const two of twos) {
@@ -423,4 +427,32 @@ import { union } from "@virtualstate/union";
   const two = await twos;
   console.log({ two });
   ok(two === 2);
+}
+
+{
+  const trues = split(
+      {
+        async *[Symbol.asyncIterator]() {
+          yield [1, 2, 3];
+          yield [4, 5, 6];
+          yield [7, 8, 9];
+        },
+      }
+  )
+      .map(value => value >= 5)
+      .filter(Boolean)
+
+  console.log({ trues });
+
+  let total = 0;
+
+  for await (const snapshot of trues) {
+    console.log({ snapshot });
+    total += snapshot.length;
+  }
+
+  console.log({ total });
+
+  ok(total === 5);
+
 }
