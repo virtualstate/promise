@@ -291,7 +291,7 @@ export function split<T>(
       }
 
       bind(that: unknown, ...args: unknown[]) {
-        return split(context.bind(that, ...args), options);
+        return () => split(context.bind(that, ...args), options);
       }
 
     }

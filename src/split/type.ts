@@ -27,7 +27,7 @@ export interface SplitAsyncIterable<T>
   named(name: Name): AsyncIterable<T[]>;
   at(index: number): TheAsyncThing<T>;
   call(this: unknown, ...args: unknown[]): AsyncIterable<T[]>;
-  bind(this: unknown, ...args: unknown[]): (...args: unknown[]) => AsyncIterable<T | T[]>;
+  bind(this: unknown, ...args: unknown[]): (...args: unknown[]) => AsyncIterable<T[]>;
 }
 
 export interface Split<T>
@@ -40,7 +40,7 @@ export interface Split<T>
   toArray(): TheAsyncThing<T[]>;
   named(name: Name): Split<T>;
   call(this: unknown, ...args: unknown[]): Split<T>;
-  bind(this: unknown, ...args: unknown[]): SplitFn<T>;
+  bind(this: unknown, ...args: unknown[]): (...args: unknown[]) => Split<T>;
 }
 
 export function assertSplitInputFn<T>(
