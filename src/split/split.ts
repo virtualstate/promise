@@ -88,10 +88,14 @@ export function split<T>(
       that?: unknown,
       ...args: unknown[]
     ): AsyncIterable<T[]> {
-      for await (const snapshot of innerCall()) {
-        yield Array.isArray(snapshot) ? snapshot : (
-            isIterable(snapshot) ? Array.from(snapshot) : [snapshot]
-        );
+      yield * asSnapshot();
+
+      async function* asSnapshot() {
+        for await (const snapshot of innerCall()) {
+          yield Array.isArray(snapshot) ? snapshot : (
+              isIterable(snapshot) ? Array.from(snapshot) : [snapshot]
+          );
+        }
       }
 
       async function* innerCall() {
@@ -117,15 +121,74 @@ export function split<T>(
       return readPromise;
     }
 
-    function close() {
+
+    async function close() {
       if (done) return;
       done = true;
-      mainTarget?.close();
-      for (const target of targets.values()) {
-        target?.close();
+      const promises = [...inner()].filter(Boolean);
+      if (promises.length) {
+        await Promise.any(promises);
       }
-      for (const target of filters.values()) {
-        target?.close();
+
+      function * inner() {
+        if (mainTarget) {
+          yield mainTarget.close();
+        }
+        for (const target of targets.values()) {
+          if (!target) continue;
+          yield target.close();
+        }
+        for (const target of filters.values()) {
+          if (!target) continue;
+          yield target.close();
+        }
+      }
+
+    }
+    async function throwAtTargets(reason: unknown) {
+      if (done) return;
+      done = true;
+      const promises = [...inner()].filter(Boolean);
+      if (promises.length) {
+        await Promise.any(promises);
+      }
+
+      function * inner() {
+        if (mainTarget) {
+          yield mainTarget.throw(reason);
+        }
+        for (const target of targets.values()) {
+          if (!target) continue;
+          yield target.throw(reason);
+        }
+        for (const target of filters.values()) {
+          if (!target) continue;
+          yield target.throw(reason);
+        }
+      }
+    }
+
+    async function push(snapshot: T[]) {
+      const promises = [...inner()].filter(Boolean);
+      if (promises.length) {
+        await Promise.any(promises);
+      }
+      function * inner() {
+        if (mainTarget) {
+          yield mainTarget.push(snapshot)
+        }
+        for (const [index, value] of Object.entries(snapshot)) {
+          const target = targets.get(+index);
+          if (!target) continue;
+          assert(value);
+          yield target.push(value)
+        }
+        for (const [fn, target] of filters.entries()) {
+          if (!target) continue;
+          const filtered = snapshot.filter(fn);
+          if (!filtered.length) continue;
+          yield target.push(filtered);
+        }
       }
     }
 
@@ -141,28 +204,13 @@ export function split<T>(
           //
           // no filter.length will also skip a filter from being updated too
           if (!snapshot.length) continue;
-          mainTarget?.push(snapshot);
-          for (const [index, value] of Object.entries(snapshot)) {
-            assert(value);
-            targets.get(+index)?.push(value);
-          }
-          for (const [fn, target] of filters.entries()) {
-            const filtered = snapshot.filter(fn);
-            if (!filtered.length) continue;
-            target.push(filtered);
-          }
+
+          await push(snapshot);
         }
-        close();
+        await close();
       } catch (error) {
-        mainTarget?.throw(error);
-        for (const target of targets.values()) {
-          target?.throw(error);
-        }
-        for (const target of filters.values()) {
-          target?.throw(error);
-        }
+        await throwAtTargets(error);
       }
-      done = true;
     }
 
     function getAsyncIterableOutput<Z>(target: Push<Z>): AsyncIterable<Z> {
@@ -263,7 +311,6 @@ export function split<T>(
           break;
         }
       }
-      close();
     }
 
     function find(fn: FilterFn<T>): TheAsyncThing<T> {

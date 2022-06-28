@@ -29,7 +29,9 @@ import { union } from "@virtualstate/union";
   }
   // Cannot double read same iterable after complete
   for await (const snapshot of c) {
+    console.log({ snapshot });
     ok(false, "should not get here");
+    total += 1;
   }
 
   console.log({ total });
@@ -528,4 +530,32 @@ import { union } from "@virtualstate/union";
 
   ok(result === 8);
 
+}
+
+{
+
+  const result = await split(
+      {
+        async *[Symbol.asyncIterator]() {
+          while (true) yield 1;
+        },
+      }
+  )
+      .take(2)
+      .at(0)
+
+  ok(result === 1);
+}
+
+{
+  const result = await split({
+    async *[Symbol.asyncIterator]() {
+      for (let i = 0; ; i += 1) {
+        yield i;
+      }
+    }
+  }, { waiting: true })
+      .take(10)
+      .at(0);
+  ok(result === 9);
 }
