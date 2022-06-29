@@ -246,6 +246,12 @@ export function split<T>(
       return getOutput(getFilterTarget(fn));
     }
 
+    async function *flatMap<M>(fn: MapFn<T, M[] | M>): AsyncIterable<M[]> {
+      for await (const snapshot of map(fn)) {
+        yield snapshot.flatMap(value => value);
+      }
+    }
+
     async function* map<M>(fn: MapFn<T, M>): AsyncIterable<M[]> {
       for await (const snapshot of source) {
         const result = snapshot.map(fn);
@@ -386,7 +392,8 @@ export function split<T>(
       every,
       concat,
       copyWithin,
-      entries
+      entries,
+      flatMap,
     };
   }
 
@@ -425,6 +432,11 @@ export function split<T>(
         map: {
           value<M>(fn: MapFn<T, M>, otherOptions?: SplitOptions) {
             return split(context.map(fn),otherOptions ?? options);
+          },
+        },
+        flatMap: {
+          value<M>(fn: MapFn<T, M[] | M>, otherOptions?: SplitOptions) {
+            return split(context.flatMap(fn),otherOptions ?? options);
           },
         },
         concat: {
@@ -510,6 +522,10 @@ export function split<T>(
 
       map<M>(fn: MapFn<T, M>, otherOptions?: TypedSplitOptions<M> | SplitOptions) {
         return split(context.map(fn), otherOptions ?? options);
+      }
+
+      flatMap<M>(fn: MapFn<T, M[] | M>, otherOptions?: TypedSplitOptions<M> | SplitOptions) {
+        return split(context.flatMap(fn), otherOptions ?? options);
       }
 
       concat(other: SplitConcatInput<T>, ...rest: T[]) {

@@ -12,7 +12,7 @@ export interface FilterIsFn<T, Z extends T> {
 }
 
 export interface MapFn<T, M> {
-  (value: T): Promise<M> | M;
+  (value: T, index: number, array: T[]): Promise<M> | M;
 }
 
 export type SplitInputAsyncIterable<T> = AsyncIterable<T | T[]>;
@@ -69,6 +69,7 @@ export interface SplitAsyncIterable<T>
   map<M>(fn: MapFn<T, M>): AsyncIterable<M[]>;
   take(count: number): AsyncIterable<T[]>;
   entries(): AsyncIterable<[number, T][]>;
+  flatMap<M>(fn: MapFn<T, M[] | M>): AsyncIterable<M[]>;
   at(index: number): TheAsyncThing<T>;
   every(fn: FilterFn<T>): TheAsyncThing<boolean>;
   call(this: unknown, ...args: unknown[]): AsyncIterable<T[]>;
@@ -89,6 +90,7 @@ export interface Split<T> extends SplitAsyncIterable<T>, Promise<T[]> {
   concat(other: SplitConcatInput<T>): Split<T>;
   copyWithin(target: number, start?: number, end?: number): Split<T>
   entries(): Split<[number, T]>;
+  flatMap<M>(fn: MapFn<T, M[] | M>, options?: TypedSplitOptions<M> | SplitOptions): Split<M>;
   toArray(): TheAsyncThing<T[]>;
   call(this: unknown, ...args: unknown[]): Split<T>;
   bind(this: unknown, ...args: unknown[]): SplitFn<T>;
