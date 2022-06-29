@@ -67,6 +67,7 @@ export interface SplitAsyncIterable<T>
   findIndex(fn: FilterFn<T>): TheAsyncThing<number>;
   concat(...args: SplitConcatSyncInput<T>[]): AsyncIterable<T[]>;
   concat(other: SplitConcatInput<T>): AsyncIterable<T[]>;
+  copyWithin(target: number, start?: number, end?: number): AsyncIterable<T[]>
   named(name: Name): AsyncIterable<T[]>;
   map<M>(fn: MapFn<T, M>): AsyncIterable<M[]>;
   take(count: number): AsyncIterable<T[]>;
@@ -88,6 +89,7 @@ export interface Split<T> extends SplitAsyncIterable<T>, Promise<T[]> {
   take(count: number): Split<T>;
   concat(...args: T[]): Split<T>;
   concat(other: SplitConcatInput<T>): Split<T>;
+  copyWithin(target: number, start?: number, end?: number): Split<T>
   toArray(): TheAsyncThing<T[]>;
   named(name: Name): Split<T>;
   call(this: unknown, ...args: unknown[]): Split<T>;

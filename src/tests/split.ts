@@ -781,3 +781,45 @@ import {isAsyncIterable} from "../is";
   }
 
 }
+
+{
+  const [, , c] = split({
+    async *[Symbol.asyncIterator]() {
+      yield 1;
+      yield [2, 1];
+      yield [3, 2, 1];
+    }
+  })
+      .copyWithin(2)
+
+  const result = await c;
+  console.log({ result });
+  ok(result === 3);
+}
+{
+  const [, , c] = split({
+    async *[Symbol.asyncIterator]() {
+      yield 1;
+      yield [2, 1];
+      yield [3, 2, 1];
+    }
+  })
+      .concat([0, 0, 0])
+      .copyWithin(2)
+
+  let index = -1;
+  for await (const snapshot of c) {
+    ok(typeof snapshot === "number");
+    index += 1;
+    console.log({ index, snapshot });
+    if (index === 0) {
+      ok(snapshot === 1);
+    } else if (index === 1) {
+      ok(snapshot === 2);
+    } else if (index === 2) {
+      ok(snapshot === 3);
+    } else {
+      ok(false);
+    }
+  }
+}

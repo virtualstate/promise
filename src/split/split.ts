@@ -366,6 +366,18 @@ export function split<T>(
       }
     }
 
+    async function *copyWithin(target: number, start?: number, end?: number): AsyncIterable<T[]> {
+      for await (const snapshot of source) {
+        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/copyWithin
+        //
+        // If target is at or greater than arr.length, nothing will be copied.
+        // If target is positioned after start, the copied sequence will be trimmed to fit arr.length.
+        //
+        // Use concat beforehand and create a bigger array, then copy to the newly available space
+        yield [...snapshot].copyWithin(target, start, end);
+      }
+    }
+
     return {
       async *[Symbol.asyncIterator](): AsyncIterableIterator<T[]> {
         mainTarget = mainTarget ?? new Push(options);
@@ -391,6 +403,7 @@ export function split<T>(
       take,
       every,
       concat,
+      copyWithin,
     };
   }
 
@@ -449,6 +462,11 @@ export function split<T>(
         concat: {
           value(other: SplitConcatInput<T>) {
             return split(context.concat(other), options);
+          }
+        },
+        copyWithin: {
+          value(target: number, start?: number, end?: number) {
+            return split(context.copyWithin(target, start, end), options);
           }
         },
         at: {
@@ -544,6 +562,10 @@ export function split<T>(
 
       toArray() {
         return async;
+      }
+
+      copyWithin(target: number, start?: number, end?: number) {
+        return split(context.copyWithin(target, start, end));
       }
 
       call(that: unknown, ...args: unknown[]) {
