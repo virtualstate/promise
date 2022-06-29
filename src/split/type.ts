@@ -73,7 +73,9 @@ export interface SplitAsyncIterable<T>
   at(index: number): TheAsyncThing<T>;
   includes(search: T, fromIndex?: number): TheAsyncThing<boolean>;
   every(fn: FilterFn<T>): TheAsyncThing<boolean>;
+  reverse(): AsyncIterable<T[]>;
   call(this: unknown, ...args: unknown[]): AsyncIterable<T[]>;
+  group<K extends string | number | symbol>(fn: MapFn<T, K>): Record<K, AsyncIterable<T[]>>;
   bind(
     this: unknown,
     ...args: unknown[]
@@ -92,6 +94,8 @@ export interface Split<T> extends SplitAsyncIterable<T>, Promise<T[]> {
   copyWithin(target: number, start?: number, end?: number): Split<T>
   entries(): Split<[number, T]>;
   flatMap<M>(fn: MapFn<T, M[] | M>, options?: TypedSplitOptions<M> | SplitOptions): Split<M>;
+  group<K extends string | number | symbol>(fn: MapFn<T, K>): Record<K, Split<T>>;
+  reverse(): Split<T>
   call(this: unknown, ...args: unknown[]): Split<T>;
   bind(this: unknown, ...args: unknown[]): SplitFn<T>;
 }

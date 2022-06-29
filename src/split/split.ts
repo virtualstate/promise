@@ -1,7 +1,7 @@
 import { anAsyncThing, TheAsyncThing } from "../the-thing";
 import { Push, PushOptions } from "../push";
 import { isLike, ok } from "../like";
-import {isAsyncIterable, isIterable, isPromise} from "../is";
+import {isAsyncIterable, isIterable, isIteratorYieldResult, isPromise} from "../is";
 import {
   FilterFn,
   Split as SplitCore,
@@ -382,6 +382,81 @@ export function split<T>(
       })
     }
 
+    async function *reverse(): AsyncIterable<T[]> {
+      for await (const snapshot of source) {
+        yield [...snapshot].reverse();
+      }
+    }
+
+    function group<K extends string | number | symbol>(fn: MapFn<T, K>): Record<K, AsyncIterable<T[]>> {
+      const known: AsyncIterable<T[]>[] = [];
+      const indexes: Partial<Record<K, number>> = {};
+      let index = -1;
+
+      function getIndex(key: K): number {
+        const existing = indexes[key];
+        if (typeof existing === "number") {
+          return existing;
+        }
+        const next = index += 1;
+        indexes[key] = next;
+        return next;
+      }
+
+      const result = createSplitContext({
+        async *[Symbol.asyncIterator]() {
+          for await (const snapshot of map((input, ...args) => {
+            const maybeGroup = fn(input, ...args);
+            if (isPromise(maybeGroup)) {
+              return maybeGroup.then(group => [group, input] as const);
+            } else {
+              return [maybeGroup, input] as const;
+            }
+          })) {
+
+            const grouped = snapshot.reduce(
+                (grouped: Partial<Record<K, T[]>>, [group, input]: [K, T]) => {
+                    grouped[group] = grouped[group] ?? [];
+                    grouped[group].push(input);
+                    return grouped;
+                },
+                {}
+            );
+
+            const aligned: T[][] = [];
+
+            for (const [group, values] of Object.entries(grouped)) {
+              ok<K>(group);
+              ok<T[]>(values);
+              aligned[getIndex(group)] = values;
+            }
+
+            yield aligned;
+          }
+        }
+      })
+      const iterator = result[Symbol.iterator]();
+
+      function getIndexedFromKnown(index: number) {
+        while (!known[index]) {
+          const result = iterator.next();
+          ok(isIteratorYieldResult(result));
+          known.push(result.value);
+        }
+        return known[index];
+      }
+
+      const output = new Proxy(known, {
+        get(_, name) {
+          ok<K>(name);
+          const index = getIndex(name);
+          return getIndexedFromKnown(index);
+        }
+      });
+      ok<Record<K, AsyncIterable<T[]>>>(output);
+      return output;
+    }
+
     return {
       async *[Symbol.asyncIterator](): AsyncIterableIterator<T[]> {
         mainTarget = mainTarget ?? new Push(options);
@@ -410,6 +485,8 @@ export function split<T>(
       entries,
       flatMap,
       includes,
+      reverse,
+      group
     };
   }
 
@@ -460,6 +537,11 @@ export function split<T>(
             return split(context.concat(other), options);
           }
         },
+        reverse: {
+          value() {
+            return split(context.reverse(), options);
+          }
+        },
         copyWithin: {
           value(target: number, start?: number, end?: number) {
             return split(context.copyWithin(target, start, end), options);
@@ -470,6 +552,22 @@ export function split<T>(
             return split(context.entries(), {
               keep: options?.keep
             });
+          }
+        },
+        group: {
+          value<K extends string | number | symbol>(fn: MapFn<T, K>) {
+            const proxied = new Proxy(
+                context.group(fn),
+                {
+                  get(target, name) {
+                    ok<K>(name);
+                    const result = target[name];
+                    return split(result, options)
+                  }
+                }
+            );
+            ok<Record<K, SplitCore<T>>>(proxied)
+            return proxied;
           }
         },
         at: {
@@ -561,10 +659,29 @@ export function split<T>(
         return split(context.copyWithin(target, start, end), options);
       }
 
+      reverse() {
+        return split(context.reverse(), options);
+      }
+
       entries() {
         return split(context.entries(), {
           keep: options?.keep,
         });
+      }
+
+      group<K extends string | number | symbol>(fn: MapFn<T, K>) {
+        const proxied = new Proxy(
+            context.group(fn),
+            {
+              get(target, name) {
+                ok<K>(name);
+                const result = target[name];
+                return split(result, options)
+              }
+            }
+        );
+        ok<Record<K, SplitCore<T>>>(proxied)
+        return proxied;
       }
 
       call(that: unknown, ...args: unknown[]) {
