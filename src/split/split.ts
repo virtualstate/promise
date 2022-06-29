@@ -367,6 +367,21 @@ export function split<T>(
       }
     }
 
+    function includes(search: T, fromIndex?: number): TheAsyncThing<boolean> {
+      return anAsyncThing({
+        async *[Symbol.asyncIterator]() {
+          let yielded = false;
+          for await (const snapshot of source) {
+            yield snapshot.includes(search, fromIndex);
+            yielded = true;
+          }
+          if (!yielded) {
+            yield false;
+          }
+        }
+      })
+    }
+
     return {
       async *[Symbol.asyncIterator](): AsyncIterableIterator<T[]> {
         mainTarget = mainTarget ?? new Push(options);
@@ -394,6 +409,7 @@ export function split<T>(
       copyWithin,
       entries,
       flatMap,
+      includes,
     };
   }
 
@@ -462,8 +478,8 @@ export function split<T>(
         every: {
           value: context.every,
         },
-        toArray: {
-          value: async.then,
+        includes: {
+          value: context.includes,
         },
         then: {
           value: async.then,
@@ -512,6 +528,10 @@ export function split<T>(
         return context.every;
       }
 
+      get includes() {
+        return context.includes;
+      }
+
       filter(fn: FilterFn<T>) {
         return split(context.filter(fn), options);
       }
@@ -535,10 +555,6 @@ export function split<T>(
         } else {
           return split(context.concat(other), options);
         }
-      }
-
-      toArray() {
-        return async;
       }
 
       copyWithin(target: number, start?: number, end?: number) {

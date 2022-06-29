@@ -71,6 +71,7 @@ export interface SplitAsyncIterable<T>
   entries(): AsyncIterable<[number, T][]>;
   flatMap<M>(fn: MapFn<T, M[] | M>): AsyncIterable<M[]>;
   at(index: number): TheAsyncThing<T>;
+  includes(search: T, fromIndex?: number): TheAsyncThing<boolean>;
   every(fn: FilterFn<T>): TheAsyncThing<boolean>;
   call(this: unknown, ...args: unknown[]): AsyncIterable<T[]>;
   bind(
@@ -91,7 +92,6 @@ export interface Split<T> extends SplitAsyncIterable<T>, Promise<T[]> {
   copyWithin(target: number, start?: number, end?: number): Split<T>
   entries(): Split<[number, T]>;
   flatMap<M>(fn: MapFn<T, M[] | M>, options?: TypedSplitOptions<M> | SplitOptions): Split<M>;
-  toArray(): TheAsyncThing<T[]>;
   call(this: unknown, ...args: unknown[]): Split<T>;
   bind(this: unknown, ...args: unknown[]): SplitFn<T>;
 }
