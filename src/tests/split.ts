@@ -821,3 +821,22 @@ import {isAsyncIterable} from "../is";
   ok(index === 0);
   ok(value === expected);
 }
+
+{
+  const { one: [ones] } = split({
+    async *[Symbol.asyncIterator]() {
+      yield [1, 2, 3];
+      yield [4, 5, 6];
+      yield [1, 2, 3];
+    },
+  })
+      .group(value => value === 1 ? "one" as const : "unknown" as const);
+
+  let total = 0;
+  for await (const one of ones) {
+    console.log({ one });
+    total += 1;
+    ok(one === 1);
+  }
+  ok(total === 2);
+}
