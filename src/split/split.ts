@@ -324,11 +324,13 @@ export function split<T>(
         yield* getAsyncIterableOutput(mainTarget);
       },
       [Symbol.iterator]() {
-        function* withIndex(index: number): Iterable<TheAsyncThing<T>> {
-          yield at(index);
-          yield* withIndex(index + 1);
+        let index = -1;
+        return {
+          next() {
+            const currentIndex = index += 1;
+            return { done: false, value: at(currentIndex) };
+          }
         }
-        return withIndex(0)[Symbol.iterator]();
       },
       filter,
       find,
