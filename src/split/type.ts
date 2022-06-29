@@ -34,12 +34,10 @@ export interface SplitIsFn<T> {
   (value: unknown): value is T;
 }
 
-export interface SplitOptions<T>
+export interface SplitOptions
   extends PushOptions,
     Partial<SplitProxyOptions> {
-  name?(value: T): Name;
-  assert?: SplitAssertFn<T>;
-  is?: SplitIsFn<T>;
+
 }
 
 export type TypedBaseSplitOptions<T> =
@@ -50,7 +48,7 @@ export type TypedBaseSplitOptions<T> =
       assert: SplitAssertFn<T>;
     };
 
-export type TypedSplitOptions<T> = SplitOptions<T> & TypedBaseSplitOptions<T>;
+export type TypedSplitOptions<T> = SplitOptions & TypedBaseSplitOptions<T>;
 
 export type SplitConcatSyncInput<T> = T | T[] | Iterable<T>
 export type SplitConcatInput<T> = AsyncIterable<SplitConcatSyncInput<T>> | SplitConcatSyncInput<T>;
@@ -68,9 +66,9 @@ export interface SplitAsyncIterable<T>
   concat(...args: SplitConcatSyncInput<T>[]): AsyncIterable<T[]>;
   concat(other: SplitConcatInput<T>): AsyncIterable<T[]>;
   copyWithin(target: number, start?: number, end?: number): AsyncIterable<T[]>
-  named(name: Name): AsyncIterable<T[]>;
   map<M>(fn: MapFn<T, M>): AsyncIterable<M[]>;
   take(count: number): AsyncIterable<T[]>;
+  entries(): AsyncIterable<[number, T][]>;
   at(index: number): TheAsyncThing<T>;
   every(fn: FilterFn<T>): TheAsyncThing<boolean>;
   call(this: unknown, ...args: unknown[]): AsyncIterable<T[]>;
@@ -85,13 +83,13 @@ export interface Split<T> extends SplitAsyncIterable<T>, Promise<T[]> {
   filter<Z extends T>(fn: FilterIsFn<T, Z>): Split<Z>;
   filter<Z>(fn: FilterIsFn<unknown, Z>): Split<Z>;
   at(index: number): TheAsyncThing<T>;
-  map<M>(fn: MapFn<T, M>, options?: SplitOptions<M>): Split<M>;
+  map<M>(fn: MapFn<T, M>, options?: TypedSplitOptions<M> | SplitOptions): Split<M>;
   take(count: number): Split<T>;
   concat(...args: T[]): Split<T>;
   concat(other: SplitConcatInput<T>): Split<T>;
   copyWithin(target: number, start?: number, end?: number): Split<T>
+  entries(): Split<[number, T]>;
   toArray(): TheAsyncThing<T[]>;
-  named(name: Name): Split<T>;
   call(this: unknown, ...args: unknown[]): Split<T>;
   bind(this: unknown, ...args: unknown[]): SplitFn<T>;
 }

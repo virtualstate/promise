@@ -19,10 +19,6 @@ import {
 } from "./type";
 import {union} from "@virtualstate/union";
 
-function identity(value: unknown) {
-  return value;
-}
-
 export function split<T>(
   input: SplitInputFn<unknown>,
   options: TypedSplitOptions<T>
@@ -33,25 +29,24 @@ export function split<T>(
 ): SplitCore<T>;
 export function split<T>(
   input: SplitInputFn<T>,
-  options?: SplitOptions<T>
+  options?: SplitOptions
 ): SplitFn<T>;
 export function split<T>(
   input: SplitInput<T>,
-  options?: SplitOptions<T>
+  options?: SplitOptions
 ): SplitCore<T>;
 export function split<T>(
   input: SplitInput<T>,
-  options?: SplitOptions<T>
+  options?: SplitOptions
 ): SplitCore<T> {
   function assert(value: unknown): asserts value is T {
-    const { assert: fn, is } = options ?? {};
-    const fnAssert: SplitAssertFn<T> = isLike<SplitAssertFn<T>>(fn)
-      ? fn
-      : undefined;
-    if (fnAssert) {
-      fnAssert(value);
-    } else if (is) {
-      ok(is(value));
+    if (!isLike<TypedSplitOptions<T>>(options)) return;
+    if ("assert" in options) {
+      const fn: SplitAssertFn<T> = options.assert;
+      return fn(value);
+    }
+    if ("is" in options) {
+      ok(options.is(value))
     }
   }
 
@@ -66,11 +61,10 @@ export function split<T>(
 
   function createSplitContext<T>(
     input: SplitInput<T>,
-    options?: SplitOptions<T>
+    options?: SplitOptions
   ): SplitAsyncIterable<T> {
     const targets = new Map<number, Push<T>>(),
-      filters = new Map<FilterFn<T>, Push<T[]>>(),
-      namedFilter = new Map<Name, FilterFn<T>>();
+      filters = new Map<FilterFn<T>, Push<T[]>>();
 
     let mainTarget: Push<T[]> | undefined = undefined;
 
@@ -252,23 +246,6 @@ export function split<T>(
       return getOutput(getFilterTarget(fn));
     }
 
-    function getNamedFilter(name: Name): FilterFn<T> {
-      let nameFn = namedFilter.get(name);
-      if (!nameFn) {
-        const getName = options?.name ?? identity;
-        nameFn = (value) => {
-          return getName(value) === name;
-        };
-        namedFilter.set(name, nameFn);
-      }
-      return nameFn;
-    }
-
-    function named(name: Name) {
-      const nameFn = getNamedFilter(name);
-      return filter(nameFn);
-    }
-
     async function* map<M>(fn: MapFn<T, M>): AsyncIterable<M[]> {
       for await (const snapshot of source) {
         const result = snapshot.map(fn);
@@ -378,6 +355,12 @@ export function split<T>(
       }
     }
 
+    async function *entries(): AsyncIterable<[number, T][]> {
+      for await (const snapshot of source) {
+        yield [...snapshot.entries()];
+      }
+    }
+
     return {
       async *[Symbol.asyncIterator](): AsyncIterableIterator<T[]> {
         mainTarget = mainTarget ?? new Push(options);
@@ -395,7 +378,6 @@ export function split<T>(
       filter,
       find,
       findIndex,
-      named,
       map,
       at,
       call,
@@ -404,6 +386,7 @@ export function split<T>(
       every,
       concat,
       copyWithin,
+      entries
     };
   }
 
@@ -434,29 +417,14 @@ export function split<T>(
             return split(context.filter(fn), options);
           },
         },
-        named: {
-          value(name: Name) {
-            return split(context.named(name), options);
-          },
-        },
         take: {
           value(count: number) {
             return split(context.take(count), options);
           },
         },
         map: {
-          value<M>(fn: MapFn<T, M>, otherOptions?: SplitOptions<M>) {
-            let name: SplitOptions<M>["name"] = options?.name
-              ? (value) => {
-                  assert(value);
-                  return options?.name(value);
-                }
-              : undefined;
-            return split(context.map(fn), {
-              keep: options?.keep,
-              name,
-              ...otherOptions
-            });
+          value<M>(fn: MapFn<T, M>, otherOptions?: SplitOptions) {
+            return split(context.map(fn),otherOptions ?? options);
           },
         },
         concat: {
@@ -467,6 +435,13 @@ export function split<T>(
         copyWithin: {
           value(target: number, start?: number, end?: number) {
             return split(context.copyWithin(target, start, end), options);
+          }
+        },
+        entries: {
+          value() {
+            return split(context.entries(), {
+              keep: options?.keep
+            });
           }
         },
         at: {
@@ -529,26 +504,12 @@ export function split<T>(
         return split(context.filter(fn), options);
       }
 
-      named(name: Name) {
-        return split(context.named(name), options);
-      }
-
       take(count: number) {
         return split(context.take(count), options);
       }
 
-      map<M>(fn: MapFn<T, M>, otherOptions?: SplitOptions<M>) {
-        let name: SplitOptions<M>["name"] = options?.name
-            ? (value) => {
-              assert(value);
-              return options?.name(value);
-            }
-            : undefined;
-        return split(context.map(fn), {
-          keep: options?.keep,
-          name,
-          ...otherOptions
-        });
+      map<M>(fn: MapFn<T, M>, otherOptions?: TypedSplitOptions<M> | SplitOptions) {
+        return split(context.map(fn), otherOptions ?? options);
       }
 
       concat(other: SplitConcatInput<T>, ...rest: T[]) {
@@ -565,11 +526,17 @@ export function split<T>(
       }
 
       copyWithin(target: number, start?: number, end?: number) {
-        return split(context.copyWithin(target, start, end));
+        return split(context.copyWithin(target, start, end), options);
+      }
+
+      entries() {
+        return split(context.entries(), {
+          keep: options?.keep,
+        });
       }
 
       call(that: unknown, ...args: unknown[]) {
-        return split(context.call.bind(undefined, that, ...args), options);
+        return split<T>(context.call.bind(undefined, that, ...args), options);
       }
 
       bind(that: unknown, ...args: unknown[]) {

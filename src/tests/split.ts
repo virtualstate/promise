@@ -314,7 +314,8 @@ import {isAsyncIterable} from "../is";
       yield [4, 5, 6];
       yield [1, 2, 3];
     },
-  }).named(1);
+  })
+      .filter(value => value === 1)
 
   let total = 0;
   for await (const one of ones) {
@@ -332,7 +333,7 @@ import {isAsyncIterable} from "../is";
       yield [1, 2, 3];
     },
   })
-    .named(1)
+    .filter(value => value === 1)
     .at(0);
 
   let total = 0;
@@ -351,13 +352,9 @@ import {isAsyncIterable} from "../is";
         yield [4, 5, 6];
         yield [1, 2, 3];
       },
-    },
-    {
-      name(value) {
-        return value === 2 ? "two" : "unknown";
-      },
     }
-  ).named("two");
+  )
+      .filter(value => value === 2)
 
   let total = 0;
   for await (const two of twos) {
@@ -375,14 +372,9 @@ import {isAsyncIterable} from "../is";
         yield [4, 5, 6];
         yield [1, 2, 3];
       },
-    },
-    {
-      name(value) {
-        return value === 2 ? "two" : "unknown";
-      },
     }
   )
-    .named("two")
+    .filter(value => value === 2)
     .at(0);
 
   let total = 0;
@@ -401,13 +393,9 @@ import {isAsyncIterable} from "../is";
         yield [4, 5, 6];
         yield [1, 2, 3];
       },
-    },
-    {
-      name(value) {
-        return value === 2 ? "two" : "unknown";
-      },
     }
-  ).named("two");
+  )
+      .filter(value => value === 2)
   console.log({ two });
   ok(two === 2);
 }
@@ -420,13 +408,9 @@ import {isAsyncIterable} from "../is";
         yield [4, 5, 6];
         yield [1, 2, 3];
       },
-    },
-    {
-      name(value) {
-        return value === 2 ? "two" : "unknown";
-      },
     }
-  ).named("two");
+  )
+      .filter(value => value === 2);
   const two = await twos;
   console.log({ two });
   ok(two === 2);
@@ -822,4 +806,18 @@ import {isAsyncIterable} from "../is";
       ok(false);
     }
   }
+}
+
+{
+  const expected = Math.random();
+  const [a] = split({
+    async *[Symbol.asyncIterator]() {
+      yield expected;
+    }
+  })
+      .entries();
+  const [index, value] = await a;
+  console.log({ index, value });
+  ok(index === 0);
+  ok(value === expected);
 }

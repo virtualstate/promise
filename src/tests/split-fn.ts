@@ -126,11 +126,7 @@ async function* Times(times?: number) {
 }
 
 {
-  const [eights] = split(Times, {
-    name(value) {
-      return value === 8 ? "eight" : "unknown";
-    },
-  })(3).named("eight");
+  const [eights] = split(Times)(3).filter(value => value === 8)
 
   let total = 0;
   for await (const eight of eights) {
@@ -143,10 +139,6 @@ async function* Times(times?: number) {
 }
 
 {
-  const [eight] = await split(Times, {
-    name(value) {
-      return value === 8 ? "eight" : "unknown";
-    },
-  })(3).named("eight");
+  const [eight] = await split(Times)(3).filter(value => value === 8)
   ok(eight === 8);
 }
