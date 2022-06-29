@@ -830,7 +830,7 @@ import {isAsyncIterable} from "../is";
       yield [1, 2, 3];
     },
   })
-      .group(value => value === 1 ? "one" as const : "unknown" as const);
+      .group(value => value === 1 ? "one" : "unknown");
 
   let total = 0;
   for await (const one of ones) {
