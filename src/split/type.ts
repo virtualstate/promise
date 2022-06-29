@@ -61,10 +61,12 @@ export interface SplitAsyncIterable<T>
   find(fn: FilterFn<T>): TheAsyncThing<T>;
   find<Z extends T>(fn: FilterIsFn<T, Z>): TheAsyncThing<Z>;
   find<Z>(fn: FilterIsFn<unknown, Z>): TheAsyncThing<Z>;
+  findIndex(fn: FilterFn<T>): TheAsyncThing<number>;
   named(name: Name): AsyncIterable<T[]>;
   map<M>(fn: MapFn<T, M>): AsyncIterable<M[]>;
   take(count: number): AsyncIterable<T[]>;
   at(index: number): TheAsyncThing<T>;
+  every(fn: FilterFn<T>): TheAsyncThing<boolean>;
   call(this: unknown, ...args: unknown[]): AsyncIterable<T[]>;
   bind(
     this: unknown,

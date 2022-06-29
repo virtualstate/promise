@@ -318,6 +318,32 @@ export function split<T>(
       })
     }
 
+    function findIndex(fn: FilterFn<T>): TheAsyncThing<number> {
+      return anAsyncThing({
+        async *[Symbol.asyncIterator]() {
+          for await (const snapshot of source) {
+            yield snapshot.findIndex(fn);
+          }
+        }
+      })
+    }
+
+    function every(fn: FilterFn<T>): TheAsyncThing<boolean> {
+      return anAsyncThing({
+        async *[Symbol.asyncIterator]() {
+          let yielded = false;
+          for await (const snapshot of source) {
+            const every = snapshot.every(fn);
+            yield every;
+            yielded = true;
+          }
+          if (!yielded) {
+            yield true;
+          }
+        }
+      })
+    }
+
     return {
       async *[Symbol.asyncIterator](): AsyncIterableIterator<T[]> {
         mainTarget = mainTarget ?? new Push(options);
@@ -334,12 +360,14 @@ export function split<T>(
       },
       filter,
       find,
+      findIndex,
       named,
       map,
       at,
       call,
       bind,
-      take
+      take,
+      every,
     };
   }
 
@@ -361,6 +389,9 @@ export function split<T>(
         },
         find: {
           value: context.find,
+        },
+        findIndex: {
+          value: context.findIndex,
         },
         filter: {
           value(fn: FilterFn<T>) {
@@ -394,6 +425,9 @@ export function split<T>(
         },
         at: {
           value: context.at,
+        },
+        every: {
+          value: context.every,
         },
         toArray: {
           value: async.then,
@@ -435,6 +469,14 @@ export function split<T>(
 
       get find() {
         return context.find;
+      }
+
+      get findIndex() {
+        return context.findIndex;
+      }
+
+      get every() {
+        return context.every;
       }
 
       filter(fn: FilterFn<T>) {

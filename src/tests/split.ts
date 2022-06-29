@@ -559,3 +559,87 @@ import { union } from "@virtualstate/union";
       .at(0);
   ok(result === 99);
 }
+
+{
+  const every = await split({
+    async *[Symbol.asyncIterator]() {
+      yield 1;
+      yield 1;
+    }
+  })
+      .every(value => value === 1);
+  console.log({ every });
+  ok(every === true);
+}
+{
+  const every = await split({
+    async *[Symbol.asyncIterator]() {
+      yield 0;
+      yield 1;
+    }
+  })
+      .every(value => value === 1);
+  console.log({ every });
+  ok(every === true);
+}
+{
+  // Every can change from false to true, as each split
+  // is multiple snapshots of state
+  const every = split({
+    async *[Symbol.asyncIterator]() {
+      yield 0;
+      yield 1;
+    }
+  })
+      .every(value => value === 1);
+
+  let index = -1;
+  for await (const snapshot of every) {
+    index += 1;
+    console.log({ index, snapshot });
+    if (index === 0) {
+      ok(!snapshot)
+    } else if (index === 1) {
+      ok(snapshot)
+    }
+  }
+  console.log({ index });
+  ok(index === 1);
+}
+
+{
+  const every = await split({
+    async *[Symbol.asyncIterator]() {
+      yield 1;
+      yield 0;
+    }
+  })
+      .every(value => value === 1);
+  console.log({ every });
+  ok(every === false);
+}
+
+{
+  // Every can change from true to false, as each split
+  // is multiple snapshots of state
+  const every = split({
+    async *[Symbol.asyncIterator]() {
+      yield 1;
+      yield 0;
+    }
+  })
+      .every(value => value === 1);
+
+  let index = -1;
+  for await (const snapshot of every) {
+    index += 1;
+    console.log({ index, snapshot });
+    if (index === 0) {
+      ok(snapshot)
+    } else if (index === 1) {
+      ok(!snapshot)
+    }
+  }
+  console.log({ index });
+  ok(index === 1);
+}
