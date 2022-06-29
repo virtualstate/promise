@@ -1,19 +1,24 @@
 import { WeakLinkedList } from "./weak-linked-list";
-import {defer, DeferOptions, Deferred} from "../defer";
+import {defer, Deferred} from "../defer";
 import { ok } from "../like";
 
-export interface PushOptions extends DeferOptions {
+export interface PushOptions {
   keep?: boolean;
 }
 
+interface PushPair<T> {
+  deferred: Deferred<T>
+  waiting: Deferred
+}
+
 export class Push<T> implements AsyncIterable<T> {
-  private values = new WeakLinkedList<Deferred<T>>();
+  private values = new WeakLinkedList<PushPair<T>>();
+
   private pointer: object = {};
   private previous: object | undefined = undefined;
   private closed: object | undefined = undefined;
   private complete = false;
-  private microtask: Promise<void> | undefined = undefined;
-  private sameMicrotask: object[] = [];
+  private microtask: object | undefined = undefined;
 
   private hold: object;
 
@@ -21,8 +26,6 @@ export class Push<T> implements AsyncIterable<T> {
   // represent what is actually available in memory
   // some iterators may be dropped without reducing this value
   private asyncIterators: number = 0;
-
-  private queue: Promise<void> = Promise.resolve();
 
   get active() {
     return this.open && this.asyncIterators > 0;
@@ -39,40 +42,76 @@ export class Push<T> implements AsyncIterable<T> {
 
   async wait() {
     const { values, pointer } = this;
-    const { value: deferred } = values.get(pointer);
-    return deferred.waiting;
+    const { value: { waiting } } = values.get(pointer);
+    return waiting.promise;
   }
 
   push(value: T): unknown {
     ok(this.open, "Already closed");
-    const { value: deferred } = this.values.get(this.pointer);
-    this.previous = this.pointer;
+    const { values, pointer } = this;
+    const { value: {deferred, waiting} } = values.get(pointer);
+    this.previous = pointer;
     this.pointer = {};
     this._nextDeferred();
     deferred.resolve(value);
-    return deferred.waiting;
+    if (this.active) {
+      return waiting.promise;
+    } else {
+      return Promise.resolve();
+    }
   }
 
   throw(reason?: unknown): unknown {
     ok(this.open, "Already closed");
-    this.closed = this.pointer;
-    const { value: deferred } = this.values.get(this.pointer);
+    const wasActive = this.active;
+    const { values, pointer } = this;
+    this.closed = pointer;
+    const { value: {deferred, waiting} } = values.get(pointer);
     deferred.reject(reason);
-    return deferred.waiting;
+    if (wasActive) {
+      return waiting.promise;
+    } else {
+      return Promise.resolve();
+    }
+  }
+
+  break() {
+    ok(this.open, "Already closed");
+    const wasActive = this.active;
+    const { values, pointer } = this;
+    this.closed = pointer;
+    this.complete = true;
+    const { value: {deferred, waiting} } = values.get(pointer);
+    deferred.resolve(undefined);
+    if (wasActive) {
+      return waiting.promise;
+    } else {
+      return Promise.resolve();
+    }
   }
 
   close(): unknown {
     ok(this.open, "Already closed");
-    this.closed = this.pointer;
-    const { value: deferred } = this.values.get(this.pointer);
+    const wasActive = this.active;
+    const { values, pointer } = this;
+    this.closed = pointer;
+    const { value: {deferred, waiting} } = values.get(pointer);
     deferred.resolve(undefined);
-    return deferred.waiting;
+    if (wasActive) {
+      return waiting.promise;
+    } else {
+      return Promise.resolve();
+    }
   }
 
   private _nextDeferred = () => {
-    const deferred = defer<T>(this.options);
-    this.values.insert(this.previous, this.pointer, deferred);
-    void deferred.promise.catch((error) => void error);
+    const deferred = defer<T>();
+    const waiting = defer();
+    const { values, pointer, previous } = this;
+    values.insert(previous, pointer, {deferred, waiting});
+    if (!this.active) {
+      void deferred.promise.catch((error) => void error);
+    }
     // If we have no other pointers in this microtask
     // we will queue a task for them to be cleared
     // This allows for fading of pointers on a task by task
@@ -81,13 +120,13 @@ export class Push<T> implements AsyncIterable<T> {
     //
     // An async iterator created in the same microtask as a pointer
     // will be able to access that pointer
-    this.sameMicrotask.push(this.pointer);
     if (!this.microtask) {
-      this.microtask = (async () => {
-        await new Promise<void>(queueMicrotask);
-        this.sameMicrotask = [];
-        this.microtask = undefined;
-      })();
+      this.microtask = pointer;
+      queueMicrotask(() => {
+        if (this.microtask === pointer) {
+          this.microtask = undefined;
+        }
+      });
     }
   };
 
@@ -100,19 +139,17 @@ export class Push<T> implements AsyncIterable<T> {
     // an iterator as a pointer still, the pointers
     // value will still be available
     let pointer =
-      this.hold ??
-      (this.sameMicrotask.includes(this.pointer)
-        ? this.sameMicrotask[0]
-        : this.pointer);
+      this.hold ?? this.microtask ?? this.pointer;
     this.asyncIterators += 1;
     if (!this.options?.keep) {
       this.hold = undefined;
     }
     const values = this.values;
     const resolved = new WeakSet();
+    let lastWaiting: Deferred | undefined = undefined;
 
     const next = async (): Promise<IteratorResult<T>> => {
-      if (!pointer || pointer === this.closed) {
+      if (this.complete || !pointer || pointer === this.closed) {
         return clear();
       }
       if (resolved.has(pointer)) {
@@ -120,9 +157,12 @@ export class Push<T> implements AsyncIterable<T> {
         ok(result.next, "Expected next after deferred resolved");
         pointer = result.next;
       }
-      const { value: deferred } = values.get(pointer);
+      const { value: {deferred, waiting} } = values.get(pointer);
+      lastWaiting?.resolve();
+      lastWaiting = undefined;
       const value = await deferred.promise;
-      if (pointer === this.closed) {
+      lastWaiting = waiting;
+      if (this.complete || pointer === this.closed) {
         return clear();
       }
       resolved.add(pointer);
@@ -132,10 +172,25 @@ export class Push<T> implements AsyncIterable<T> {
     const clear = (): IteratorResult<T> => {
       this.asyncIterators -= 1;
       if (!this.active) {
+        this.closed = undefined;
         this.complete = true;
       }
-      pointer = undefined;
+
+      function resolveWaiting(pointer: object): void {
+        const item = values.get(pointer);
+        if (!item) return;
+        const { value: {waiting}, next } = item;
+        waiting.resolve(undefined);
+        if (!next) return;
+        return resolveWaiting(next);
+      }
+
+      if (pointer) {
+        resolveWaiting(pointer);
+        pointer = undefined;
+      }
       return { done: true, value: undefined };
+
     }
 
     return {

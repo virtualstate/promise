@@ -1,6 +1,6 @@
 import { Push } from "../push";
 import { ok } from "../like";
-import { isIterable, isIteratorYieldResult, isRejected } from "../is";
+import { isIteratorYieldResult, isRejected } from "../is";
 import { anAsyncThing } from "../the-thing";
 
 {

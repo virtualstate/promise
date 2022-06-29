@@ -541,7 +541,7 @@ import { union } from "@virtualstate/union";
         },
       }
   )
-      .take(2)
+      .take(3)
       .at(0)
 
   ok(result === 1);
@@ -554,8 +554,8 @@ import { union } from "@virtualstate/union";
         yield i;
       }
     }
-  }, { waiting: true })
-      .take(10)
+  })
+      .take(100)
       .at(0);
-  ok(result === 9);
+  ok(result === 99);
 }

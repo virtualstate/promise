@@ -154,16 +154,12 @@ export function split<T>(
       }
 
       function * inner() {
-        if (mainTarget) {
-          yield mainTarget.throw(reason);
-        }
+        yield mainTarget?.throw(reason);
         for (const target of targets.values()) {
-          if (!target) continue;
-          yield target.throw(reason);
+          yield target?.throw(reason);
         }
         for (const target of filters.values()) {
-          if (!target) continue;
-          yield target.throw(reason);
+          yield target?.throw(reason);
         }
       }
     }
@@ -174,9 +170,7 @@ export function split<T>(
         await Promise.any(promises);
       }
       function * inner() {
-        if (mainTarget) {
-          yield mainTarget.push(snapshot)
-        }
+        yield mainTarget?.push(snapshot)
         for (const [index, value] of Object.entries(snapshot)) {
           const target = targets.get(+index);
           if (!target) continue;
@@ -228,12 +222,12 @@ export function split<T>(
     }
 
     function at(index: number) {
-      if (isSplitAt(input)) {
-        const result = input.at(index);
-        if (isAsyncIterable<T[]>(result)) {
-          return createSplitContext(result).at(0);
-        }
-      }
+      // if (isSplitAt(input)) {
+      //   const result = input.at(index);
+      //   if (isAsyncIterable<T[]>(result)) {
+      //     return createSplitContext(result).at(0);
+      //   }
+      // }
       const existing = targets.get(index);
       if (existing) {
         return getOutput(existing);
