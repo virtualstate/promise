@@ -345,20 +345,24 @@ export function split<T>(
       })
     }
 
-    async function *concat(other: AsyncIterable<T | T[]> | T | T[]): AsyncIterable<T[]> {
+    async function *concat(other: SplitConcatInput<T>, ...rest: SplitConcatSyncInput<T>[]): AsyncIterable<T[]> {
       if (!isAsyncIterable(other)) {
         for await (const snapshot of source) {
-          yield [...snapshot, ...asArray(other)];
+          yield [...snapshot, ...asIterable(other), ...rest].flatMap(asArray);
         }
         return
       }
 
       for await (const [left, right] of union([source, other])) {
-        yield [...asArray(left), ...asArray(right)]
+        yield [...asArray(left), ...asArray(right)].flatMap(asArray)
       }
 
-      function asArray(other: SplitConcatSyncInput<T>): Iterable<T> {
+      function asIterable(other: SplitConcatSyncInput<T>): Iterable<T> {
         return isIterable(other) ? other : [other];
+      }
+
+      function asArray(other: SplitConcatSyncInput<T>): T[] {
+        return [...asIterable(other)];
       }
     }
 
@@ -529,8 +533,13 @@ export function split<T>(
         });
       }
 
-      concat(other: SplitConcatInput<T>) {
-        return split(context.concat(other), options);
+      concat(other: SplitConcatInput<T>, ...rest: T[]) {
+        if (rest.length) {
+          ok<T>(other);
+          return split(context.concat(other, ...rest))
+        } else {
+          return split(context.concat(other), options);
+        }
       }
 
       toArray() {

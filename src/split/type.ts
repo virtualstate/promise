@@ -65,6 +65,7 @@ export interface SplitAsyncIterable<T>
   find<Z extends T>(fn: FilterIsFn<T, Z>): TheAsyncThing<Z>;
   find<Z>(fn: FilterIsFn<unknown, Z>): TheAsyncThing<Z>;
   findIndex(fn: FilterFn<T>): TheAsyncThing<number>;
+  concat(...args: SplitConcatSyncInput<T>[]): AsyncIterable<T[]>;
   concat(other: SplitConcatInput<T>): AsyncIterable<T[]>;
   named(name: Name): AsyncIterable<T[]>;
   map<M>(fn: MapFn<T, M>): AsyncIterable<M[]>;
@@ -85,6 +86,7 @@ export interface Split<T> extends SplitAsyncIterable<T>, Promise<T[]> {
   at(index: number): TheAsyncThing<T>;
   map<M>(fn: MapFn<T, M>, options?: SplitOptions<M>): Split<M>;
   take(count: number): Split<T>;
+  concat(...args: T[]): Split<T>;
   concat(other: SplitConcatInput<T>): Split<T>;
   toArray(): TheAsyncThing<T[]>;
   named(name: Name): Split<T>;
