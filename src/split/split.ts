@@ -1,6 +1,6 @@
 import { anAsyncThing, TheAsyncThing } from "../the-thing";
 import { Push, PushOptions } from "../push";
-import { isLike, ok } from "../like";
+import {isLike, no, ok} from "../like";
 import {isAsyncIterable, isIterable, isIteratorYieldResult, isPromise} from "../is";
 import {
   FilterFn,
@@ -15,7 +15,7 @@ import {
   MapFn,
   SplitOptions,
   SplitAssertFn,
-  TypedSplitOptions, SplitConcatInput, SplitConcatSyncInput,
+  TypedSplitOptions, SplitConcatInput, SplitConcatSyncInput, AsyncMap,
 } from "./type";
 import {union} from "@virtualstate/union";
 
@@ -431,6 +431,10 @@ export function split<T>(
               aligned[getIndex(group)] = values;
             }
 
+            for (const index of known.keys()) {
+              aligned[index] = aligned[index] ?? [];
+            }
+
             yield aligned;
           }
         }
@@ -455,6 +459,38 @@ export function split<T>(
       });
       ok<Record<K, AsyncIterable<T[]>>>(output);
       return output;
+    }
+
+    function groupToMap<K extends string | number | symbol>(fn: MapFn<T, K>): AsyncMap<K, AsyncIterable<T[]>> {
+        const grouped = group(fn);
+        return {
+          get(key: K): AsyncIterable<T[]> {
+            return grouped[key];
+          },
+          set(): never {
+            return no();
+          },
+          has(key: K): TheAsyncThing<boolean> {
+            return anAsyncThing({
+              async * [Symbol.asyncIterator](): AsyncIterator<boolean> {
+                let yielded = false;
+                for await (const snapshot of grouped[key]) {
+                  yield snapshot.length > 0;
+                  yielded = true
+                }
+                if (!yielded) {
+                  yield false;
+                }
+              }
+            })
+          },
+          delete(): never {
+            return no();
+          },
+          get size() {
+            return no();
+          }
+        }
     }
 
     return {
@@ -486,7 +522,8 @@ export function split<T>(
       flatMap,
       includes,
       reverse,
-      group
+      group,
+      groupToMap
     };
   }
 
@@ -568,6 +605,16 @@ export function split<T>(
             );
             ok<Record<K, SplitCore<T>>>(proxied)
             return proxied;
+          }
+        },
+        groupToMap: {
+          value<K extends string | number | symbol>(fn: MapFn<T, K>) {
+            const map = context.groupToMap(fn);
+            const get = map.get.bind(map);
+            map.get = (key) => {
+              return split(get(key), options);
+            }
+            return map;
           }
         },
         at: {
@@ -682,6 +729,16 @@ export function split<T>(
         );
         ok<Record<K, SplitCore<T>>>(proxied)
         return proxied;
+      }
+
+      groupToMap<K extends string | number | symbol>(fn: MapFn<T, K>) {
+        const map = context.groupToMap(fn);
+        const get = map.get.bind(map);
+        map.get = (key) => {
+          return split(get(key), options);
+        }
+        ok<AsyncMap<K, SplitCore<T>>>(map);
+        return map;
       }
 
       call(that: unknown, ...args: unknown[]) {

@@ -840,3 +840,57 @@ import {isAsyncIterable} from "../is";
   }
   ok(total === 2);
 }
+
+{
+  const [ones] = split({
+    async *[Symbol.asyncIterator]() {
+      yield [1, 2, 3];
+      yield [4, 5, 6];
+      yield [1, 2, 3];
+    },
+  })
+      .groupToMap(value => value === 1 ? "one" : "unknown")
+      .get("one");
+
+  let total = 0;
+  for await (const one of ones) {
+    console.log({ one });
+    total += 1;
+    ok(one === 1);
+  }
+  ok(total === 2);
+}
+
+{
+  const has = await split({
+    async *[Symbol.asyncIterator]() {
+      yield [1, 2, 3];
+      yield [4, 5, 6];
+      yield [1, 2, 3];
+    },
+  })
+      .groupToMap(value => value === 1 ? "one" : "unknown")
+      .has("one");
+  console.log({ has });
+  ok(has)
+}
+{
+  const has = split({
+    async *[Symbol.asyncIterator]() {
+      yield [1, 2, 3];
+      yield [4, 5, 6];
+      yield [1, 2, 3];
+    },
+  })
+      .groupToMap(value => value === 1 ? "one" : "unknown")
+      .has("one");
+  let count = 0;
+  let total = 0;
+  for await (const snapshot of has) {
+    console.log({ has: snapshot });
+    total += 1;
+    count += snapshot ? 1 : 0;
+  }
+  console.log({ total });
+  ok(count === 2);
+}

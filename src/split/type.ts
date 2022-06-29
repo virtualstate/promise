@@ -15,6 +15,16 @@ export interface MapFn<T, M> {
   (value: T, index: number, array: T[]): Promise<M> | M;
 }
 
+export type AsyncMapEntry<K, A extends AsyncIterable<unknown[]>> = [K, A];
+
+export interface AsyncMap<K, V extends AsyncIterable<unknown[]>> {
+  get(key: K): V;
+  set(key: K, value: V): never;
+  delete(key: K): never;
+  has(key: K): TheAsyncThing<boolean>;
+  size: never;
+}
+
 export type SplitInputAsyncIterable<T> = AsyncIterable<T | T[]>;
 
 export interface SplitInputFn<T> {
@@ -76,6 +86,7 @@ export interface SplitAsyncIterable<T>
   reverse(): AsyncIterable<T[]>;
   call(this: unknown, ...args: unknown[]): AsyncIterable<T[]>;
   group<K extends string | number | symbol>(fn: MapFn<T, K>): Record<K, AsyncIterable<T[]>>;
+  groupToMap<K extends string | number | symbol>(fn: MapFn<T, K>): AsyncMap<K, AsyncIterable<T[]>>;
   bind(
     this: unknown,
     ...args: unknown[]
@@ -95,6 +106,7 @@ export interface Split<T> extends SplitAsyncIterable<T>, Promise<T[]> {
   entries(): Split<[number, T]>;
   flatMap<M>(fn: MapFn<T, M[] | M>, options?: TypedSplitOptions<M> | SplitOptions): Split<M>;
   group<K extends string | number | symbol>(fn: MapFn<T, K>): Record<K, Split<T>>;
+  groupToMap<K extends string | number | symbol>(fn: MapFn<T, K>): AsyncMap<K, Split<T>>;
   reverse(): Split<T>
   call(this: unknown, ...args: unknown[]): Split<T>;
   bind(this: unknown, ...args: unknown[]): SplitFn<T>;

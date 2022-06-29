@@ -9,3 +9,7 @@ export function ok(value: unknown, message?: string): asserts value {
     throw new Error(message ?? "Expected value");
   }
 }
+
+export function no(): never {
+  throw new Error("Not implemented");
+}
