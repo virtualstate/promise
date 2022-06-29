@@ -1,6 +1,7 @@
 import { split } from "../split";
 import { ok } from "../like";
 import { union } from "@virtualstate/union";
+import {isAsyncIterable} from "../is";
 
 {
   const [a, b, c] = split({
@@ -642,4 +643,141 @@ import { union } from "@virtualstate/union";
   }
   console.log({ index });
   ok(index === 1);
+}
+
+{
+  const index = await split({
+    async *[Symbol.asyncIterator]() {
+      yield 1;
+      yield [0, 1];
+    }
+  })
+      .findIndex(value =>value === 1);
+  ok(index === 1);
+}
+{
+  const index = split({
+    async *[Symbol.asyncIterator]() {
+      yield 1;
+      yield [0, 1];
+      yield [0, 0, 1];
+    }
+  })
+      .findIndex(value =>value === 1);
+
+  let expectedIndex = -1;
+
+  for await (const snapshot of index) {
+    expectedIndex += 1;
+    ok(snapshot === expectedIndex);
+  }
+
+  ok(expectedIndex === 2);
+}
+
+{
+  const [a, b, c, d, e] = await split({
+    async *[Symbol.asyncIterator]() {
+      yield 1;
+      yield [0, 1];
+      yield [0, 0, 1];
+    }
+  })
+      .concat([2, 3]);
+
+  console.log([a, b, c, d, e]);
+
+  ok(a === 0);
+  ok(b == 0);
+  ok(c === 1)
+  ok(d === 2);
+  ok(e === 3);
+}
+{
+  const [a, b, c, d, e] = split({
+    async *[Symbol.asyncIterator]() {
+      yield 1;
+      yield [0, 1];
+      yield [0, 0, 1];
+    }
+  })
+      .concat([2, 3]);
+
+  for await (const snapshot of union([a, b, c, d, e])) {
+    const filtered = snapshot.filter(value => typeof value === "number");
+    console.log({ snapshot, filtered });
+
+    if (filtered.length === 3) {
+      ok(filtered[0] === 1)
+      ok(filtered[1] === 2);
+      ok(filtered[2] === 3);
+    } else if (filtered.length === 4) {
+      ok(filtered[0] == 0);
+      ok(filtered[1] === 1)
+      ok(filtered[2] === 2);
+      ok(filtered[3] === 3);
+    } else if (filtered.length === 5) {
+      ok(filtered[0] === 0);
+      ok(filtered[1] == 0);
+      ok(filtered[2] === 1)
+      ok(filtered[3] === 2);
+      ok(filtered[4] === 3);
+    } else {
+      ok(false);
+    }
+
+  }
+}
+
+{
+
+
+  const result = await (
+      split({
+        async *[Symbol.asyncIterator]() {
+          yield 1;
+          yield [0, 1];
+          yield [0, 0, 1];
+        }
+      })
+  )
+      .concat({
+        async *[Symbol.asyncIterator]() {
+          yield 1;
+          yield [0, 1];
+          yield [0, 0, 1];
+        }
+      })
+
+  console.log(result);
+  ok(result.length === 6);
+
+}
+{
+
+
+  const [a, b, c, d, e, f] = (
+      split({
+        async *[Symbol.asyncIterator]() {
+          yield 1;
+          yield [0, 1];
+          yield [0, 0, 1];
+        }
+      })
+  )
+      .concat({
+        async *[Symbol.asyncIterator]() {
+          yield 1;
+          yield [0, 1];
+          yield [0, 0, 1];
+        }
+      });
+
+  for await (const snapshot of union([a, b, c, d, e, f])) {
+    ok(snapshot.length === 6);
+    const filtered = snapshot.filter(value => typeof value === "number");
+    console.log({ snapshot, filtered });
+    ok(filtered.length >= 1);
+  }
+
 }

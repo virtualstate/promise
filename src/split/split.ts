@@ -15,8 +15,9 @@ import {
   MapFn,
   SplitOptions,
   SplitAssertFn,
-  TypedSplitOptions,
+  TypedSplitOptions, SplitConcatInput, SplitConcatSyncInput,
 } from "./type";
+import {union} from "@virtualstate/union";
 
 function identity(value: unknown) {
   return value;
@@ -344,6 +345,23 @@ export function split<T>(
       })
     }
 
+    async function *concat(other: AsyncIterable<T | T[]> | T | T[]): AsyncIterable<T[]> {
+      if (!isAsyncIterable(other)) {
+        for await (const snapshot of source) {
+          yield [...snapshot, ...asArray(other)];
+        }
+        return
+      }
+
+      for await (const [left, right] of union([source, other])) {
+        yield [...asArray(left), ...asArray(right)]
+      }
+
+      function asArray(other: SplitConcatSyncInput<T>): Iterable<T> {
+        return isIterable(other) ? other : [other];
+      }
+    }
+
     return {
       async *[Symbol.asyncIterator](): AsyncIterableIterator<T[]> {
         mainTarget = mainTarget ?? new Push(options);
@@ -368,6 +386,7 @@ export function split<T>(
       bind,
       take,
       every,
+      concat,
     };
   }
 
@@ -422,6 +441,11 @@ export function split<T>(
               ...otherOptions
             });
           },
+        },
+        concat: {
+          value(other: SplitConcatInput<T>) {
+            return split(context.concat(other), options);
+          }
         },
         at: {
           value: context.at,
@@ -503,6 +527,10 @@ export function split<T>(
           name,
           ...otherOptions
         });
+      }
+
+      concat(other: SplitConcatInput<T>) {
+        return split(context.concat(other), options);
       }
 
       toArray() {
