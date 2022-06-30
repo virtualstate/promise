@@ -288,10 +288,12 @@ export function split<T>(
         async *[Symbol.asyncIterator]() {
           let current = 0;
           for await (const snapshot of source) {
-            yield* check(snapshot);
-            current += 1;
-            if (current === count) {
-              break;
+            for (const output of check(snapshot)) {
+              yield output;
+              current += 1;
+              if (current >= count) {
+                return;
+              }
             }
           }
         },

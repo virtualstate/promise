@@ -66,7 +66,7 @@ export class Push<T> implements AsyncIterable<T> {
   }
 
   throw(reason?: unknown): unknown {
-    ok(this.open, "Already closed");
+    if (!this.open) return;
     const wasActive = this.active;
     const { values, pointer } = this;
     this.closed = pointer;
@@ -82,11 +82,11 @@ export class Push<T> implements AsyncIterable<T> {
   }
 
   break() {
-    ok(this.open, "Already closed");
+    this.complete = true;
+    if (!this.open) return;
     const wasActive = this.active;
     const { values, pointer } = this;
     this.closed = pointer;
-    this.complete = true;
     const {
       value: { deferred, waiting },
     } = values.get(pointer);
@@ -99,7 +99,7 @@ export class Push<T> implements AsyncIterable<T> {
   }
 
   close(): unknown {
-    ok(this.open, "Already closed");
+    if (!this.open) return;
     const wasActive = this.active;
     const { values, pointer } = this;
     this.closed = pointer;
