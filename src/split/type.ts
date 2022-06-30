@@ -47,7 +47,7 @@ export interface SplitIsFn<T> {
 export interface SplitOptions
   extends PushOptions,
     Partial<SplitProxyOptions> {
-
+  empty?: boolean
 }
 
 export type TypedBaseSplitOptions<T> =

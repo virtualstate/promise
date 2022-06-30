@@ -63,10 +63,10 @@ export function split<T>(
     input: SplitInput<T>,
     options?: SplitOptions
   ): SplitAsyncIterable<T> {
-    const targets = new Map<number, Push<T>>(),
-      filters = new Map<FilterFn<T>, Push<T[]>>();
-
+    const targets = new Map<number, Push<T>>();
     let mainTarget: Push<T[]> | undefined = undefined;
+
+    const { empty } = options ?? {};
 
     let done = false,
       started = false;
@@ -79,16 +79,27 @@ export function split<T>(
       };
     }
 
-    async function* call(
+    function *check<T>(snapshot: T[]): Iterable<T[]> {
+      if (!empty && snapshot.length === 0) {
+        return;
+      }
+      yield snapshot;
+    }
+
+    function call(
       that?: unknown,
       ...args: unknown[]
     ): AsyncIterable<T[]> {
-      yield * asSnapshot();
+      return {
+        [Symbol.asyncIterator]: asSnapshot
+      };
 
       async function* asSnapshot() {
         for await (const snapshot of innerCall()) {
-          yield Array.isArray(snapshot) ? snapshot : (
-              isIterable(snapshot) ? Array.from(snapshot) : [snapshot]
+          yield * check(
+              Array.isArray(snapshot) ? snapshot : (
+                  isIterable(snapshot) ? Array.from(snapshot) : [snapshot]
+              )
           );
         }
       }
@@ -133,10 +144,6 @@ export function split<T>(
           if (!target) continue;
           yield target.close();
         }
-        for (const target of filters.values()) {
-          if (!target) continue;
-          yield target.close();
-        }
       }
 
     }
@@ -151,9 +158,6 @@ export function split<T>(
       function * inner() {
         yield mainTarget?.throw(reason);
         for (const target of targets.values()) {
-          yield target?.throw(reason);
-        }
-        for (const target of filters.values()) {
           yield target?.throw(reason);
         }
       }
@@ -172,12 +176,6 @@ export function split<T>(
           assert(value);
           yield target.push(value)
         }
-        for (const [fn, target] of filters.entries()) {
-          if (!target) continue;
-          const filtered = snapshot.filter(fn);
-          if (!filtered.length) continue;
-          yield target.push(filtered);
-        }
       }
     }
 
@@ -187,13 +185,9 @@ export function split<T>(
         started = true;
         for await (const snapshot of source) {
           if (done) break;
-          // If there is no length then the targets will not be invoked
-          // It would be two different representations if we did anything different
-          // for our main target too, so we will skip the entire update
-          //
-          // no filter.length will also skip a filter from being updated too
-          if (!snapshot.length) continue;
-
+          if (empty === false && snapshot.length === 0) {
+            continue;
+          }
           await push(snapshot);
         }
         await close();
@@ -232,43 +226,47 @@ export function split<T>(
       return getOutput(target);
     }
 
-    function getFilterTarget(fn: FilterFn<T>) {
-      const existing = filters.get(fn);
-      if (existing) {
-        return existing;
-      }
-      const target = new Push<T[]>();
-      filters.set(fn, target);
-      return target;
-    }
-
-    function filter(fn: FilterFn<T>) {
-      return getOutput(getFilterTarget(fn));
-    }
-
-    async function *flatMap<M>(fn: MapFn<T, M[] | M>): AsyncIterable<M[]> {
-      for await (const snapshot of map(fn)) {
-        yield snapshot.flatMap(value => value);
+    function filter(fn: FilterFn<T>): AsyncIterable<T[]> {
+      return {
+        async *[Symbol.asyncIterator]() {
+          for await (const snapshot of source) {
+            yield * check(snapshot.filter(fn));
+          }
+        }
       }
     }
 
-    async function* map<M>(fn: MapFn<T, M>): AsyncIterable<M[]> {
-      for await (const snapshot of source) {
-        const result = snapshot.map(fn);
-        const promises = result.filter<Promise<M>>(isPromise);
-        if (isSyncArray(result, promises)) {
-          yield result;
-        } else {
-          const promiseResults = await Promise.all(promises);
-          const completeResults = result.map((value) => {
-            if (isPromise(value)) {
-              const index = promises.indexOf(value);
-              return promiseResults[index];
+    function flatMap<M>(fn: MapFn<T, M[] | M>): AsyncIterable<M[]> {
+      return {
+        async *[Symbol.asyncIterator]() {
+          for await (const snapshot of map(fn)) {
+            yield * check(snapshot.flatMap(value => value));
+          }
+        }
+      }
+    }
+
+    function map<M>(fn: MapFn<T, M>): AsyncIterable<M[]> {
+      return {
+        async *[Symbol.asyncIterator]() {
+          for await (const snapshot of source) {
+            const result = snapshot.map(fn);
+            const promises = result.filter<Promise<M>>(isPromise);
+            if (isSyncArray(result, promises)) {
+              yield * check(result);
             } else {
-              return value;
+              const promiseResults = await Promise.all(promises);
+              const completeResults = result.map((value) => {
+                if (isPromise(value)) {
+                  const index = promises.indexOf(value);
+                  return promiseResults[index];
+                } else {
+                  return value;
+                }
+              });
+              yield * check(completeResults);
             }
-          });
-          yield completeResults;
+          }
         }
       }
 
@@ -280,22 +278,25 @@ export function split<T>(
       }
     }
 
-    async function * take(count: number) {
-      let current = 0;
-      for await (const snapshot of source) {
-        yield snapshot;
-        current += 1;
-        if (current === count) {
-          break;
+    function take(count: number) {
+      return {
+        async *[Symbol.asyncIterator]() {
+          let current = 0;
+          for await (const snapshot of source) {
+            yield * check(snapshot);
+            current += 1;
+            if (current === count) {
+              break;
+            }
+          }
         }
       }
     }
 
     function find(fn: FilterFn<T>): TheAsyncThing<T> {
-      const filtered = filter(fn);
       return anAsyncThing({
         async *[Symbol.asyncIterator]() {
-          for await (const [first] of filtered) {
+          for await (const [first] of filter(fn)) {
             yield first;
           }
         }
@@ -328,42 +329,54 @@ export function split<T>(
       })
     }
 
-    async function *concat(other: SplitConcatInput<T>, ...rest: SplitConcatSyncInput<T>[]): AsyncIterable<T[]> {
-      if (!isAsyncIterable(other)) {
-        for await (const snapshot of source) {
-          yield [...snapshot, ...asIterable(other), ...rest].flatMap(asArray);
+    function concat(other: SplitConcatInput<T>, ...rest: SplitConcatSyncInput<T>[]): AsyncIterable<T[]> {
+      return {
+        async *[Symbol.asyncIterator]() {
+          if (!isAsyncIterable(other)) {
+            for await (const snapshot of source) {
+              yield [...snapshot, ...asIterable(other), ...rest].flatMap(asArray);
+            }
+            return
+          }
+
+          for await (const [left, right] of union([source, other])) {
+            yield [...asArray(left), ...asArray(right)].flatMap(asArray)
+          }
+
+          function asIterable(other: SplitConcatSyncInput<T>): Iterable<T> {
+            return isIterable(other) ? other : [other];
+          }
+
+          function asArray(other: SplitConcatSyncInput<T>): T[] {
+            return [...asIterable(other)];
+          }
         }
-        return
-      }
-
-      for await (const [left, right] of union([source, other])) {
-        yield [...asArray(left), ...asArray(right)].flatMap(asArray)
-      }
-
-      function asIterable(other: SplitConcatSyncInput<T>): Iterable<T> {
-        return isIterable(other) ? other : [other];
-      }
-
-      function asArray(other: SplitConcatSyncInput<T>): T[] {
-        return [...asIterable(other)];
       }
     }
 
-    async function *copyWithin(target: number, start?: number, end?: number): AsyncIterable<T[]> {
-      for await (const snapshot of source) {
-        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/copyWithin
-        //
-        // If target is at or greater than arr.length, nothing will be copied.
-        // If target is positioned after start, the copied sequence will be trimmed to fit arr.length.
-        //
-        // Use concat beforehand and create a bigger array, then copy to the newly available space
-        yield [...snapshot].copyWithin(target, start, end);
+    function copyWithin(target: number, start?: number, end?: number): AsyncIterable<T[]> {
+      return {
+        async *[Symbol.asyncIterator]() {
+          for await (const snapshot of source) {
+            // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/copyWithin
+            //
+            // If target is at or greater than arr.length, nothing will be copied.
+            // If target is positioned after start, the copied sequence will be trimmed to fit arr.length.
+            //
+            // Use concat beforehand and create a bigger array, then copy to the newly available space
+            yield [...snapshot].copyWithin(target, start, end);
+          }
+        }
       }
     }
 
-    async function *entries(): AsyncIterable<[number, T][]> {
-      for await (const snapshot of source) {
-        yield [...snapshot.entries()];
+    function entries(): AsyncIterable<[number, T][]> {
+      return {
+        async *[Symbol.asyncIterator]() {
+          for await (const snapshot of source) {
+            yield [...snapshot.entries()];
+          }
+        }
       }
     }
 
@@ -382,9 +395,13 @@ export function split<T>(
       })
     }
 
-    async function *reverse(): AsyncIterable<T[]> {
-      for await (const snapshot of source) {
-        yield [...snapshot].reverse();
+    function reverse(): AsyncIterable<T[]> {
+      return {
+        async *[Symbol.asyncIterator]() {
+          for await (const snapshot of source) {
+            yield [...snapshot].reverse();
+          }
+        }
       }
     }
 

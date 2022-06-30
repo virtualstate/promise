@@ -424,6 +424,9 @@ import {isAsyncIterable} from "../is";
           yield [4, 5, 6];
           yield [7, 8, 9];
         },
+      },
+      {
+        empty: false
       }
   )
       .map(value => value >= 5)
