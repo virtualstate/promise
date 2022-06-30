@@ -1,5 +1,5 @@
 import { WeakLinkedList } from "./weak-linked-list";
-import {defer, Deferred} from "../defer";
+import { defer, Deferred } from "../defer";
 import { ok } from "../like";
 
 export interface PushOptions {
@@ -7,8 +7,8 @@ export interface PushOptions {
 }
 
 interface PushPair<T> {
-  deferred: Deferred<T>
-  waiting: Deferred
+  deferred: Deferred<T>;
+  waiting: Deferred;
 }
 
 export class Push<T> implements AsyncIterable<T> {
@@ -42,14 +42,18 @@ export class Push<T> implements AsyncIterable<T> {
 
   async wait() {
     const { values, pointer } = this;
-    const { value: { waiting } } = values.get(pointer);
+    const {
+      value: { waiting },
+    } = values.get(pointer);
     return waiting.promise;
   }
 
   push(value: T): unknown {
     ok(this.open, "Already closed");
     const { values, pointer } = this;
-    const { value: {deferred, waiting} } = values.get(pointer);
+    const {
+      value: { deferred, waiting },
+    } = values.get(pointer);
     this.previous = pointer;
     this.pointer = {};
     this._nextDeferred();
@@ -66,7 +70,9 @@ export class Push<T> implements AsyncIterable<T> {
     const wasActive = this.active;
     const { values, pointer } = this;
     this.closed = pointer;
-    const { value: {deferred, waiting} } = values.get(pointer);
+    const {
+      value: { deferred, waiting },
+    } = values.get(pointer);
     deferred.reject(reason);
     if (wasActive) {
       return waiting.promise;
@@ -81,7 +87,9 @@ export class Push<T> implements AsyncIterable<T> {
     const { values, pointer } = this;
     this.closed = pointer;
     this.complete = true;
-    const { value: {deferred, waiting} } = values.get(pointer);
+    const {
+      value: { deferred, waiting },
+    } = values.get(pointer);
     deferred.resolve(undefined);
     if (wasActive) {
       return waiting.promise;
@@ -95,7 +103,9 @@ export class Push<T> implements AsyncIterable<T> {
     const wasActive = this.active;
     const { values, pointer } = this;
     this.closed = pointer;
-    const { value: {deferred, waiting} } = values.get(pointer);
+    const {
+      value: { deferred, waiting },
+    } = values.get(pointer);
     deferred.resolve(undefined);
     if (wasActive) {
       return waiting.promise;
@@ -108,7 +118,7 @@ export class Push<T> implements AsyncIterable<T> {
     const deferred = defer<T>();
     const waiting = defer();
     const { values, pointer, previous } = this;
-    values.insert(previous, pointer, {deferred, waiting});
+    values.insert(previous, pointer, { deferred, waiting });
     if (!this.active) {
       void deferred.promise.catch((error) => void error);
     }
@@ -138,8 +148,7 @@ export class Push<T> implements AsyncIterable<T> {
     // If a pointer is available in sameMicrotask, or
     // an iterator as a pointer still, the pointers
     // value will still be available
-    let pointer =
-      this.hold ?? this.microtask ?? this.pointer;
+    let pointer = this.hold ?? this.microtask ?? this.pointer;
     this.asyncIterators += 1;
     if (!this.options?.keep) {
       this.hold = undefined;
@@ -157,7 +166,9 @@ export class Push<T> implements AsyncIterable<T> {
         ok(result.next, "Expected next after deferred resolved");
         pointer = result.next;
       }
-      const { value: {deferred, waiting} } = values.get(pointer);
+      const {
+        value: { deferred, waiting },
+      } = values.get(pointer);
       lastWaiting?.resolve();
       lastWaiting = undefined;
       const value = await deferred.promise;
@@ -179,7 +190,10 @@ export class Push<T> implements AsyncIterable<T> {
       function resolveWaiting(pointer: object): void {
         const item = values.get(pointer);
         if (!item) return;
-        const { value: {waiting}, next } = item;
+        const {
+          value: { waiting },
+          next,
+        } = item;
         waiting.resolve(undefined);
         if (!next) return;
         return resolveWaiting(next);
@@ -190,8 +204,7 @@ export class Push<T> implements AsyncIterable<T> {
         pointer = undefined;
       }
       return { done: true, value: undefined };
-
-    }
+    };
 
     return {
       next,

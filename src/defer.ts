@@ -2,7 +2,7 @@ import { ok } from "./like";
 
 export type DeferredStatus = "pending" | "fulfilled" | "rejected";
 
-export interface Deferred<T = void>  {
+export interface Deferred<T = void> {
   resolve(value: T): void;
   reject(reason: unknown): void;
   promise: Promise<T>;
@@ -12,9 +12,9 @@ export interface Deferred<T = void>  {
 
 export function defer<T = void>(): Deferred<T> {
   let resolve: Deferred<T>["resolve"] | undefined = undefined,
-      reject: Deferred<T>["reject"] | undefined = undefined,
-      settled = false,
-      status: DeferredStatus = "pending";
+    reject: Deferred<T>["reject"] | undefined = undefined,
+    settled = false,
+    status: DeferredStatus = "pending";
   const promise = new Promise<T>((resolveFn, rejectFn) => {
     resolve = (value) => {
       status = "fulfilled";
