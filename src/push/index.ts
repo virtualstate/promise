@@ -155,7 +155,6 @@ export class Push<T> implements AsyncIterable<T> {
     }
     const values = this.values;
     const resolved = new WeakSet();
-    let lastWaiting: Deferred | undefined = undefined;
 
     const next = async (): Promise<IteratorResult<T>> => {
       if (this.complete || !pointer || pointer === this.closed) {
@@ -169,10 +168,8 @@ export class Push<T> implements AsyncIterable<T> {
       const {
         value: { deferred, waiting },
       } = values.get(pointer);
-      lastWaiting?.resolve();
-      lastWaiting = undefined;
+      waiting.resolve();
       const value = await deferred.promise;
-      lastWaiting = waiting;
       if (this.complete || pointer === this.closed) {
         return clear();
       }

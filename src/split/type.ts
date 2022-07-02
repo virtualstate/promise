@@ -73,8 +73,6 @@ export interface SplitAsyncIterable<T>
   find<Z extends T>(fn: FilterIsFn<T, Z>): TheAsyncThing<Z>;
   find<Z>(fn: FilterIsFn<unknown, Z>): TheAsyncThing<Z>;
   findIndex(fn: FilterFn<T>): TheAsyncThing<number>;
-  concat(...args: SplitConcatSyncInput<T>[]): AsyncIterable<T[]>;
-  concat(other: SplitConcatInput<T>): AsyncIterable<T[]>;
   copyWithin(target: number, start?: number, end?: number): AsyncIterable<T[]>;
   map<M>(fn: MapFn<T, M>): AsyncIterable<M[]>;
   take(count: number): AsyncIterable<T[]>;
@@ -84,6 +82,10 @@ export interface SplitAsyncIterable<T>
   includes(search: T, fromIndex?: number): TheAsyncThing<boolean>;
   every(fn: FilterFn<T>): TheAsyncThing<boolean>;
   reverse(): AsyncIterable<T[]>;
+  concat(...args: SplitConcatSyncInput<T>[]): AsyncIterable<T[]>;
+  concat(other: SplitConcatInput<T>): AsyncIterable<T[]>;
+  push(other: SplitInput<T>): AsyncIterable<T[]>
+  push<M>(other: SplitInput<M>): AsyncIterable<(M | T)[]>
   call(this: unknown, ...args: unknown[]): AsyncIterable<T[]>;
   group<K extends string | number | symbol>(
     fn: MapFn<T, K>
@@ -122,6 +124,8 @@ export interface Split<T> extends SplitAsyncIterable<T>, Promise<T[]> {
     fn: MapFn<T, K>
   ): AsyncMap<K, Split<T>>;
   reverse(): Split<T>;
+  push(other: SplitInput<T>, otherOptions?: TypedSplitOptions<T> | SplitOptions): Split<T>
+  push<M>(other: SplitInput<M>, otherOptions?: TypedSplitOptions<M> | SplitOptions): Split<M | T>
   call(this: unknown, ...args: unknown[]): Split<T>;
   bind(this: unknown, ...args: unknown[]): SplitFn<T>;
 }

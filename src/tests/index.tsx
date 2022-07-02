@@ -11,6 +11,7 @@ try {
   await import("./push");
   await import("./split");
   await import("./split-fn");
+  await import("./walk");
 } catch (error) {
   if (error instanceof AggregateError) {
     console.error(error.errors);

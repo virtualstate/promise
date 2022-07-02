@@ -168,7 +168,7 @@ export function split<T>(
       }
     }
 
-    async function push(snapshot: T[]) {
+    async function pushToTarget(snapshot: T[]) {
       const promises = [...inner()].filter(Boolean);
       if (promises.length) {
         await Promise.any(promises);
@@ -193,7 +193,7 @@ export function split<T>(
           if (empty === false && snapshot.length === 0) {
             continue;
           }
-          await push(snapshot);
+          await pushToTarget(snapshot);
         }
         await close();
       } catch (error) {
@@ -421,6 +421,17 @@ export function split<T>(
       };
     }
 
+    function push(other: SplitInput<T>): AsyncIterable<T[]>
+    function push<M>(other: SplitInput<M>): AsyncIterable<(M | T)[]>
+    function push(other: SplitInput<T>): AsyncIterable<T[]> {
+      return {
+        async *[Symbol.asyncIterator]() {
+          yield * source;
+          yield * createSplitContext(other);
+        }
+      }
+    }
+
     function group<K extends string | number | symbol>(
       fn: MapFn<T, K>
     ): Record<K, AsyncIterable<T[]>> {
@@ -560,6 +571,7 @@ export function split<T>(
       reverse,
       group,
       groupToMap,
+      push,
     };
   }
 
@@ -649,6 +661,11 @@ export function split<T>(
             };
             return map;
           },
+        },
+        join: {
+          value<M>(other: SplitInput<M>, otherOptions?: TypedSplitOptions<M> | SplitOptions) {
+            return split(context.push(other), otherOptions ?? options);
+          }
         },
         at: {
           value: context.at,
@@ -753,6 +770,10 @@ export function split<T>(
         return split(context.entries(), {
           keep: options?.keep,
         });
+      }
+
+      push<M>(other: SplitInput<M>, otherOptions?: TypedSplitOptions<M> | SplitOptions) {
+        return split(context.push(other), otherOptions ?? options);
       }
 
       group<K extends string | number | symbol>(fn: MapFn<T, K>) {
