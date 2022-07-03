@@ -125,7 +125,7 @@ export function split<T>(
                 //
                 // keep when used with push allows the async iterables
                 // to be read multiple times over as well!
-                void at(index);
+                void atTarget(index);
               }
             }
             yield output;
@@ -237,6 +237,14 @@ export function split<T>(
       return anAsyncThing(async);
     }
 
+    function atTarget(index: number) {
+      const existing = targets.get(index);
+      if (existing) return existing;
+      const target = new Push<T>(options);
+      targets.set(index, target);
+      return target;
+    }
+
     function at(index: number) {
       // if (isSplitAt(input)) {
       //   const result = input.at(index);
@@ -244,13 +252,7 @@ export function split<T>(
       //     return createSplitContext(result).at(0);
       //   }
       // }
-      const existing = targets.get(index);
-      if (existing) {
-        return getOutput(existing);
-      }
-      const target = new Push<T>(options);
-      targets.set(index, target);
-      return getOutput(target);
+      return getOutput(atTarget(index));
     }
 
     function filter(fn: FilterFn<T>): AsyncIterable<T[]> {

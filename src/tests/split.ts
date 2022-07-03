@@ -882,3 +882,45 @@ import { isAsyncIterable } from "../is";
   console.log({ total });
   ok(total === 4);
 }
+
+
+{
+  const info = split(
+      {
+        async * [Symbol.asyncIterator]() {
+          yield 1;
+          yield 2;
+          yield 3;
+        }
+      },
+      {
+        keep: true
+      }
+  )
+
+  let initial = 0;
+  for await (const [] of info) {
+    initial += 1;
+  }
+  console.log({ initial });
+  ok(initial === 3);
+
+  let next = 0;
+  for await (const [] of info) {
+    next += 1;
+  }
+  console.log({ next });
+  ok(next === 3);
+
+  const [values] = info;
+
+  let totalSnapshot = 0;
+  let total = 0;
+  for await (const snapshot of values) {
+    totalSnapshot += snapshot;
+    total += 1;
+  }
+  console.log({ total, totalSnapshot });
+  ok(total === 3);
+  ok(totalSnapshot === 6); // 1 + 2 + 3
+}

@@ -189,7 +189,7 @@ export class Push<T> implements AsyncIterable<T>, PushWriter<T> {
 
     const clear = (): IteratorResult<T> => {
       this.asyncIterators -= 1;
-      if (!this.active) {
+      if (!this.active && !this.options?.keep) {
         this.closed = undefined;
         this.complete = true;
       }
