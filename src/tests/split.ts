@@ -888,9 +888,11 @@ import { isAsyncIterable } from "../is";
   const info = split(
       {
         async * [Symbol.asyncIterator]() {
+          console.log("Running");
           yield 1;
           yield 2;
           yield 3;
+          console.log("Finished");
         }
       },
       {
@@ -899,14 +901,16 @@ import { isAsyncIterable } from "../is";
   )
 
   let initial = 0;
-  for await (const [] of info) {
+  for await (const snapshot of info) {
+    console.log({ snapshot })
     initial += 1;
   }
   console.log({ initial });
   ok(initial === 3);
 
   let next = 0;
-  for await (const [] of info) {
+  for await (const snapshot of info) {
+    console.log({ snapshot })
     next += 1;
   }
   console.log({ next });
@@ -917,6 +921,7 @@ import { isAsyncIterable } from "../is";
   let totalSnapshot = 0;
   let total = 0;
   for await (const snapshot of values) {
+    console.log({ snapshot });
     totalSnapshot += snapshot;
     total += 1;
   }
