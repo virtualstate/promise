@@ -11,7 +11,17 @@ interface PushPair<T> {
   waiting: Deferred;
 }
 
-export class Push<T> implements AsyncIterable<T> {
+export interface PushWriter<T> {
+  readonly active?: boolean;
+  readonly open?: boolean;
+  push(value: T): unknown;
+  throw?(reason?: unknown): unknown;
+  close?(): unknown;
+  break?(): unknown;
+  wait?(): Promise<void>;
+}
+
+export class Push<T> implements AsyncIterable<T>, PushWriter<T> {
   private values = new WeakLinkedList<PushPair<T>>();
 
   private pointer: object = {};

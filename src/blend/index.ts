@@ -1,8 +1,10 @@
-import {Push} from "../push";
+import {PushWriter} from "../push";
 
 export interface BlenderTargetFn<T> {
     (value: T): void | Promise<void>;
 }
+
+export type BlenderTarget<T> = BlenderTargetFn<T> | PushWriter<T>;
 
 export interface BlendedIndex {
     source: number;
@@ -20,21 +22,20 @@ export interface Blended extends BlendedIndex {
 
 export interface Blender<T> {
     source(source: AsyncIterable<T>): number;
-    target(target: Push<T> | BlenderTargetFn<T>): number;
+    target(target: BlenderTarget<T>): number;
     connect(options?: BlendOptions): Blended[];
 }
 
 export interface BlenderOptions extends BlendOptions {
-
+    close?: boolean;
 }
-
 
 export function blend<T>(options?: BlenderOptions): Blender<T> {
 
-    const targets: (Push<T> | BlenderTargetFn<T>)[] = [];
+    const targets: BlenderTarget<T>[] = [];
     const sources: AsyncIterable<T>[] = [];
 
-    async function connect(source: AsyncIterable<T>, target: Push<T> | BlenderTargetFn<T>) {
+    async function connect(source: AsyncIterable<T>, target: BlenderTarget<T>) {
         const fn = typeof target === "function" ? target : (value: T) => target.push(value);
         try {
             for await (const value of source) {
@@ -45,6 +46,12 @@ export function blend<T>(options?: BlenderOptions): Blender<T> {
                 target.throw(error);
             }
             throw await Promise.reject(error);
+        } finally {
+            if (options?.close) {
+                if (typeof target !== "function" && target.close) {
+                    target.close();
+                }
+            }
         }
     }
 

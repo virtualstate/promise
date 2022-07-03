@@ -81,6 +81,10 @@ export function split<T>(
 
     let readPromise: Promise<void> | undefined = undefined;
 
+    function getMainTarget() {
+      return mainTarget = mainTarget ?? new Push(options);
+    }
+
     function bind(that: unknown, ...args: unknown[]) {
       return function binder(this: unknown, ...more: unknown[]) {
         return call(that, ...args, ...more);
@@ -100,14 +104,32 @@ export function split<T>(
       };
 
       async function* asSnapshot() {
+        if (options?.keep && !mainTarget) {
+          void getMainTarget();
+        }
         for await (const snapshot of innerCall()) {
-          yield* check(
-            Array.isArray(snapshot)
-              ? snapshot
-              : isIterable(snapshot)
-              ? Array.from(snapshot)
-              : [snapshot]
-          );
+          for (const output of check(
+              Array.isArray(snapshot)
+                  ? snapshot
+                  : isIterable(snapshot)
+                      ? Array.from(snapshot)
+                      : [snapshot]
+          )) {
+            if (options?.keep) {
+              for (const index of output.keys()) {
+                // Ensure that the target is loaded before we start yielding
+                // in our core
+                //
+                // Only do this if keep is indicated, this allows for the entire
+                // source to be read at any point.
+                //
+                // keep when used with push allows the async iterables
+                // to be read multiple times over as well!
+                void at(index);
+              }
+            }
+            yield output;
+          }
         }
       }
 
@@ -542,8 +564,7 @@ export function split<T>(
 
     return {
       async *[Symbol.asyncIterator](): AsyncIterableIterator<T[]> {
-        mainTarget = mainTarget ?? new Push(options);
-        yield* getAsyncIterableOutput(mainTarget);
+        yield* getAsyncIterableOutput(getMainTarget());
       },
       [Symbol.iterator]() {
         let index = -1;
