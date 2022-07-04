@@ -1,7 +1,7 @@
 import {PushWriter} from "../push";
 
 export interface BlenderTargetFn<T> {
-    (value: T): void | Promise<void>;
+    (value: T): unknown | void | Promise<unknown | void>;
 }
 
 export type BlenderTarget<T> = BlenderTargetFn<T> | PushWriter<T>;
@@ -21,8 +21,8 @@ export interface Blended extends BlendedIndex {
 }
 
 export interface Blender<T> {
-    source(source: AsyncIterable<T>): number;
-    target(target: BlenderTarget<T>): number;
+    source(source: AsyncIterable<T>, at?: number): number;
+    target(target: BlenderTarget<T>, at?: number): number;
     connect(options?: BlendOptions): Blended[];
 }
 
@@ -35,32 +35,72 @@ export function blend<T>(options?: BlenderOptions): Blender<T> {
     const targets: BlenderTarget<T>[] = [];
     const sources: AsyncIterable<T>[] = [];
 
-    async function connect(source: AsyncIterable<T>, target: BlenderTarget<T>) {
-        const fn = typeof target === "function" ? target : (value: T) => target.push(value);
+    function pushAtTarget(target: number, value: T) {
+        const writer = targets[target];
+        if (typeof writer === "function") {
+            return writer(value);
+        }
+        return writer.push(value);
+    }
+
+    function throwAtTarget(target: number, reason: T) {
+        const writer = targets[target];
+        if (typeof writer === "function") {
+            return
+        }
+        return writer.throw(reason);
+    }
+
+    function closeTarget(target: number) {
+        if (!options?.close) return;
+        const writer = targets[target];
+        if (typeof writer === "function") {
+            return
+        }
+        return writer.close();
+    }
+
+    function shouldReconnect(index: number, source: AsyncIterable<T>) {
+        return sources[index] !== source;
+    }
+
+    async function connect(source: number, target: number): Promise<void> {
+        const iterable = sources[source];
+        if (!iterable) return;
+        const reconnect = shouldReconnect.bind(undefined, source, iterable);
         try {
-            for await (const value of source) {
-                await fn(value);
+            for await (const value of iterable) {
+                if (reconnect()) break;
+                await pushAtTarget(target, value);
+                if (reconnect()) break;
+            }
+            if (reconnect()) {
+                // Swap connection
+                return await connect(source, target);
             }
         } catch (error) {
-            if (typeof target !== "function" && target.throw) {
-                target.throw(error);
-            }
+            throwAtTarget(target, error);
             throw await Promise.reject(error);
         } finally {
-            if (options?.close) {
-                if (typeof target !== "function" && target.close) {
-                    target.close();
-                }
-            }
+            closeTarget(target);
         }
     }
 
     return {
-        source(source) {
-            return sources.push(source);
+        source(source, at) {
+            console.log({ at, source });
+            if (typeof at === "number") {
+                sources[at] = source;
+                return at;
+            }
+            return sources.push(source) - 1;
         },
-        target(target) {
-            return targets.push(target);
+        target(target, at) {
+            if (typeof at === "number") {
+                targets[at] = target;
+                return at;
+            }
+            return targets.push(target) - 1;
         },
         connect(additionalOptions) {
             const allOptions = {
@@ -71,27 +111,25 @@ export function blend<T>(options?: BlenderOptions): Blender<T> {
             const result: Blended[] = [];
             if (inputBlend?.length) {
                 for (const blend of inputBlend) {
-                    const target = targets[blend.target];
-                    const source = sources[blend.source];
                     result.push({
                         ...blend,
-                        promise: connect(source, target)
+                        promise: connect(blend.source, blend.target)
                     });
                 }
             }
             if (random !== false) {
                 const usedTargets = new Set(result.map(({ target }) => target));
                 const usedSources = new Set(result.map(({ source }) => source));
-                const targetsRemaining = [...targets.entries()].filter(([index]) => !usedTargets.has(index));
-                const sourcesRemaining = [...sources.entries()].filter(([index]) => !usedSources.has(index));
+                const targetsRemaining = [...targets.keys()].filter((index) => !usedTargets.has(index));
+                const sourcesRemaining = [...sources.keys()].filter((index) => !usedSources.has(index));
                 while (targetsRemaining.length && sourcesRemaining.length) {
                     const targetsRemainingIndex = Math.max(0, Math.round(Math.random() * targetsRemaining.length - 1));
                     const sourcesRemainingIndex = Math.max(0, Math.round(Math.random() * sourcesRemaining.length - 1));
-                    const [targetIndex, target] = targetsRemaining[targetsRemainingIndex];
-                    const [sourceIndex, source] = sourcesRemaining[sourcesRemainingIndex];
+                    const target = targetsRemaining[targetsRemainingIndex];
+                    const source = sourcesRemaining[sourcesRemainingIndex];
                     result.push({
-                        target: targetIndex,
-                        source: sourceIndex,
+                        target,
+                        source,
                         promise: connect(source, target)
                     });
                     targetsRemaining.splice(targetsRemainingIndex, 1);
