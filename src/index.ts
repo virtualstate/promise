@@ -8,6 +8,7 @@ export * from "./defer";
 export * from "./split";
 export * from "./walk";
 export * from "./series";
+export * from "./blend";
 
 // Core dependency
 export { union, UnionInput, UnionOptions } from "@virtualstate/union";
