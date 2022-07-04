@@ -88,9 +88,7 @@ import {ok} from "../like";
             await new Promise(resolve => setTimeout(resolve, 5));
             blender.source({
                 async * [Symbol.asyncIterator]() {
-                    console.log("expected");
                     yield expected;
-                    console.log("expected");
                 }
             }, replace);
         }
