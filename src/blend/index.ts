@@ -6,7 +6,12 @@ export interface BlenderTargetFn<T> {
 
 export type BlenderTarget<T> = BlenderTargetFn<T> | PushWriter<T>;
 
-export interface BlendedIndex {
+export interface BlendedIndexLike {
+    source: unknown;
+    target: unknown;
+}
+
+export interface BlendedIndex extends BlendedIndexLike {
     source: number;
     target: number;
 }
@@ -20,17 +25,17 @@ export interface Blended extends BlendedIndex {
     promise: Promise<void>;
 }
 
-export interface BlenderBlend<I = BlendedIndex> {
+export interface BlenderBlend<I extends BlendedIndexLike = BlendedIndex> {
     blend(options?: BlendOptions<I>): I[];
 }
 
-export interface BlenderConnect<I = BlendedIndex, B = Blended> extends BlenderBlend<I> {
+export interface BlenderConnect<I extends BlendedIndexLike = BlendedIndex, B = Blended> extends BlenderBlend<I> {
     connect(options?: BlendOptions<I>): B[];
 }
 
-export interface Blender<T = unknown, I = BlendedIndex, B = Blended> extends BlenderConnect<I, B> {
-    source(source: AsyncIterable<T>, at?: number): number;
-    target(target: BlenderTarget<T>, at?: number): number;
+export interface Blender<T = unknown, I extends BlendedIndexLike = BlendedIndex, B = Blended> extends BlenderConnect<I, B> {
+    source(source: AsyncIterable<T>, at?: I["source"]): I["source"];
+    target(target: BlenderTarget<T>, at?: I["target"]): I["target"];
 }
 
 export interface BlenderOptions extends BlendOptions {
