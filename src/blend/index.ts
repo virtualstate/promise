@@ -11,8 +11,8 @@ export interface BlendedIndex {
     target: number;
 }
 
-export interface BlendOptions {
-    blended?: BlendedIndex[];
+export interface BlendOptions<I = BlendedIndex> {
+    blended?: I[];
     random?: boolean;
 }
 
@@ -20,15 +20,15 @@ export interface Blended extends BlendedIndex {
     promise: Promise<void>;
 }
 
-export interface BlenderConnect {
-    connect(options?: BlendOptions): Blended[];
+export interface BlenderBlend<I = BlendedIndex> {
+    blend(options?: BlendOptions<I>): I[];
 }
 
-export interface BlenderBlend {
-    blend(options?: BlendOptions): BlendedIndex[];
+export interface BlenderConnect<I = BlendedIndex, B = Blended> extends BlenderBlend<I> {
+    connect(options?: BlendOptions<I>): B[];
 }
 
-export interface Blender<T = unknown> extends BlenderConnect, BlenderBlend {
+export interface Blender<T = unknown, I = BlendedIndex, B = Blended> extends BlenderConnect<I, B> {
     source(source: AsyncIterable<T>, at?: number): number;
     target(target: BlenderTarget<T>, at?: number): number;
 }
