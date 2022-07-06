@@ -6,12 +6,12 @@ export interface PushOptions {
   keep?: boolean;
 }
 
-interface PushPair<T> {
+interface PushPair<T = unknown> {
   deferred: Deferred<T>;
   waiting: Deferred;
 }
 
-export interface PushWriter<T> {
+export interface PushWriter<T = unknown> {
   readonly active?: boolean;
   readonly open?: boolean;
   push(value: T): unknown;
@@ -21,7 +21,7 @@ export interface PushWriter<T> {
   wait?(): Promise<void>;
 }
 
-export class Push<T> implements AsyncIterable<T>, PushWriter<T> {
+export class Push<T = unknown> implements AsyncIterable<T>, PushWriter<T> {
   private values = new WeakLinkedList<PushPair<T>>();
 
   private pointer: object = {};
