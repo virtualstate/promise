@@ -131,7 +131,6 @@ export function blend<T = unknown>(options?: BlenderOptions): Blender<T> {
 
     return {
         source(source, at) {
-            console.log({ at, source });
             if (typeof at === "number") {
                 sources[at] = source;
                 return at;
