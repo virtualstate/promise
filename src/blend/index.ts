@@ -20,11 +20,17 @@ export interface Blended extends BlendedIndex {
     promise: Promise<void>;
 }
 
-export interface Blender<T> {
+export interface BlenderConnect {
+    connect(options?: BlendOptions): Blended[];
+}
+
+export interface BlenderBlend {
+    blend(options?: BlendOptions): BlendedIndex[];
+}
+
+export interface Blender<T> extends BlenderConnect, BlenderBlend {
     source(source: AsyncIterable<T>, at?: number): number;
     target(target: BlenderTarget<T>, at?: number): number;
-    blend(options?: BlendOptions): BlendedIndex[];
-    connect(options?: BlendOptions): Blended[];
 }
 
 export interface BlenderOptions extends BlendOptions {
