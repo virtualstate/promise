@@ -23,6 +23,7 @@ export interface Blended extends BlendedIndex {
 export interface Blender<T> {
     source(source: AsyncIterable<T>, at?: number): number;
     target(target: BlenderTarget<T>, at?: number): number;
+    blend(options?: BlendOptions): BlendedIndex[];
     connect(options?: BlendOptions): Blended[];
 }
 
@@ -86,6 +87,39 @@ export function blend<T>(options?: BlenderOptions): Blender<T> {
         }
     }
 
+    function blend(additionalOptions?: BlendOptions) {
+        const allOptions = {
+            ...options,
+            ...additionalOptions
+        }
+        const { blended: inputBlend, random } = allOptions;
+        const result: BlendedIndex[] = [];
+        if (inputBlend?.length) {
+            for (const blend of inputBlend) {
+                result.push(blend);
+            }
+        }
+        if (random !== false) {
+            const usedTargets = new Set(result.map(({ target }) => target));
+            const usedSources = new Set(result.map(({ source }) => source));
+            const targetsRemaining = [...targets.keys()].filter((index) => !usedTargets.has(index));
+            const sourcesRemaining = [...sources.keys()].filter((index) => !usedSources.has(index));
+            while (targetsRemaining.length && sourcesRemaining.length) {
+                const targetsRemainingIndex = Math.max(0, Math.round(Math.random() * targetsRemaining.length - 1));
+                const sourcesRemainingIndex = Math.max(0, Math.round(Math.random() * sourcesRemaining.length - 1));
+                const target = targetsRemaining[targetsRemainingIndex];
+                const source = sourcesRemaining[sourcesRemainingIndex];
+                result.push({
+                    target,
+                    source
+                });
+                targetsRemaining.splice(targetsRemainingIndex, 1);
+                sourcesRemaining.splice(sourcesRemainingIndex, 1);
+            }
+        }
+        return result;
+    }
+
     return {
         source(source, at) {
             console.log({ at, source });
@@ -102,41 +136,14 @@ export function blend<T>(options?: BlenderOptions): Blender<T> {
             }
             return targets.push(target) - 1;
         },
+        blend,
         connect(additionalOptions) {
-            const allOptions = {
-                ...options,
-                ...additionalOptions
-            }
-            const { blended: inputBlend, random } = allOptions;
-            const result: Blended[] = [];
-            if (inputBlend?.length) {
-                for (const blend of inputBlend) {
-                    result.push({
-                        ...blend,
-                        promise: connect(blend.source, blend.target)
-                    });
-                }
-            }
-            if (random !== false) {
-                const usedTargets = new Set(result.map(({ target }) => target));
-                const usedSources = new Set(result.map(({ source }) => source));
-                const targetsRemaining = [...targets.keys()].filter((index) => !usedTargets.has(index));
-                const sourcesRemaining = [...sources.keys()].filter((index) => !usedSources.has(index));
-                while (targetsRemaining.length && sourcesRemaining.length) {
-                    const targetsRemainingIndex = Math.max(0, Math.round(Math.random() * targetsRemaining.length - 1));
-                    const sourcesRemainingIndex = Math.max(0, Math.round(Math.random() * sourcesRemaining.length - 1));
-                    const target = targetsRemaining[targetsRemainingIndex];
-                    const source = sourcesRemaining[sourcesRemainingIndex];
-                    result.push({
-                        target,
-                        source,
-                        promise: connect(source, target)
-                    });
-                    targetsRemaining.splice(targetsRemainingIndex, 1);
-                    sourcesRemaining.splice(sourcesRemainingIndex, 1);
-                }
-            }
-            return result;
+            const blended = blend(additionalOptions);
+            return blended.map(({ source, target }): Blended => ({
+                source,
+                target,
+                promise: connect(source, target)
+            }));
         }
     }
 
