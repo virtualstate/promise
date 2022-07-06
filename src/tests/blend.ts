@@ -3,7 +3,7 @@ import {all} from "../all";
 import {ok} from "../like";
 
 {
-    const blender = blend();
+    const blender = blend({ random: true });
 
     blender.source({
         async * [Symbol.asyncIterator]() {
@@ -42,7 +42,7 @@ import {ok} from "../like";
 }
 
 {
-    const blender = blend();
+    const blender = blend({ random: true });
 
     const expectedInitial = Symbol("Expected initial symbol");
     const unexpected = Symbol("Unexpected symbol");

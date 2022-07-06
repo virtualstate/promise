@@ -105,7 +105,7 @@ export function blend<T = unknown>(options?: BlenderOptions): Blender<T> {
                 result.push(blend);
             }
         }
-        if (random !== false) {
+        if (random) {
             const usedTargets = new Set(result.map(({ target }) => target));
             const usedSources = new Set(result.map(({ source }) => source));
             const targetsRemaining = [...targets.keys()].filter((index) => !usedTargets.has(index));
