@@ -44,6 +44,7 @@ export function blend<T = unknown>(options?: BlenderOptions): Blender<T> {
 
     function pushAtTarget(target: number, value: T) {
         const writer = targets[target];
+        if (!writer) return;
         if (typeof writer === "function") {
             return writer(value);
         }
@@ -52,19 +53,21 @@ export function blend<T = unknown>(options?: BlenderOptions): Blender<T> {
 
     function throwAtTarget(target: number, reason: T) {
         const writer = targets[target];
+        if (!writer) return;
         if (typeof writer === "function") {
             return
         }
-        return writer.throw(reason);
+        return writer.throw?.(reason);
     }
 
     function closeTarget(target: number) {
         if (!options?.close) return;
         const writer = targets[target];
+        if (!writer) return;
         if (typeof writer === "function") {
             return
         }
-        return writer.close();
+        return writer.close?.();
     }
 
     function shouldReconnect(index: number, source: AsyncIterable<T>) {
