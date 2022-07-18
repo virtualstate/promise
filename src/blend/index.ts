@@ -47,6 +47,8 @@ export function blend<T = unknown>(options?: BlenderOptions): Blender<T> {
     const targets: BlenderTarget<T>[] = [];
     const sources: AsyncIterable<T>[] = [];
 
+    const connected = new WeakSet<object>();
+
     function pushAtTarget(target: number, value: T) {
         const writer = targets[target];
         if (!writer) return;
@@ -72,6 +74,9 @@ export function blend<T = unknown>(options?: BlenderOptions): Blender<T> {
         if (typeof writer === "function") {
             return
         }
+        if (connected.has(writer)) {
+            return;
+        }
         return writer.close?.();
     }
 
@@ -84,19 +89,23 @@ export function blend<T = unknown>(options?: BlenderOptions): Blender<T> {
         if (!iterable) return;
         const reconnect = shouldReconnect.bind(undefined, source, iterable);
         try {
+            connected.add(iterable);
             for await (const value of iterable) {
                 if (reconnect()) break;
                 await pushAtTarget(target, value);
                 if (reconnect()) break;
             }
+            connected.delete(iterable);
             if (reconnect()) {
                 // Swap connection
                 return await connect(source, target);
             }
         } catch (error) {
+            connected.delete(iterable);
             throwAtTarget(target, error);
             throw await Promise.reject(error);
         } finally {
+            connected.delete(iterable);
             closeTarget(target);
         }
     }

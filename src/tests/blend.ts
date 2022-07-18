@@ -195,3 +195,52 @@ import {union} from "@virtualstate/union";
     ok(results[1][1] === 2);
 
 }
+
+{
+    const blender = blend({ close: true });
+
+    const sourceA = new Push();
+    sourceA.push(1);
+    sourceA.push(2);
+    sourceA.close();
+    const sourceAIndex = blender.source(sourceA);
+
+    const sourceB = new Push();
+    sourceB.push(3);
+    sourceB.push(4);
+    sourceB.close();
+    const sourceBIndex = blender.source(sourceB);
+
+    const target = new Push();
+    const targetIndex = blender.target(target);
+
+    const [{ promise }] = blender.connect({
+        blended: [
+            {
+                source: sourceAIndex,
+                target: targetIndex
+            },
+            {
+                source: sourceBIndex,
+                target: targetIndex
+            }
+        ]
+    });
+
+    // Target will now be loaded
+    await promise;
+
+    const results = [];
+
+    for await (const snapshot of target) {
+        results.push(snapshot);
+    }
+
+    console.log(results);
+    ok(results.length === 4);
+    ok(results.includes(1));
+    ok(results.includes(2));
+    ok(results.includes(3));
+    ok(results.includes(4));
+
+}
