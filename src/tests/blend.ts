@@ -1,6 +1,8 @@
 import { blend } from "../blend";
 import {all} from "../all";
 import {ok} from "../like";
+import {Push} from "../push";
+import {union} from "@virtualstate/union";
 
 {
     const blender = blend({ random: true });
@@ -102,5 +104,94 @@ import {ok} from "../like";
     ok(results.includes(expectedThird));
     ok(results.includes(expectedFourth));
     ok(!results.includes(unexpected));
+
+}
+
+{
+    const blender = blend({ close: true });
+
+    const source = new Push();
+    source.push(1);
+    source.push(2);
+    source.close();
+
+    const sourceIndex = blender.source(source);
+
+    const target = new Push();
+    const targetIndex = blender.target(target);
+
+    const [{ promise }] = blender.connect({
+        blended: [
+            {
+                source: sourceIndex,
+                target: targetIndex
+            }
+        ]
+    });
+
+    // Target will now be loaded
+    await promise;
+
+    const results = [];
+
+    for await (const snapshot of target) {
+        results.push(snapshot);
+    }
+
+    console.log(results);
+
+    ok(results.length === 2);
+    ok(results[0] === 1);
+    ok(results[1] === 2);
+
+}
+
+{
+    const blender = blend({ close: true });
+
+    const source = new Push();
+    source.push(1);
+    source.push(2);
+    source.close();
+
+    const sourceIndex = blender.source(source);
+
+    const targetA = new Push();
+    const targetAIndex = blender.target(targetA);
+    const targetB = new Push();
+    const targetBIndex = blender.target(targetB);
+
+    const [{ promise }] = blender.connect({
+        blended: [
+            {
+                source: sourceIndex,
+                target: targetAIndex
+            },
+            {
+                source: sourceIndex,
+                target: targetBIndex
+            }
+        ]
+    });
+
+    // Target will now be loaded
+    await promise;
+
+    const results = [];
+
+    for await (const snapshot of union([
+        targetA,
+        targetB
+    ])) {
+        results.push(snapshot);
+    }
+
+    console.log(results);
+
+    ok(results.length === 2);
+    ok(results[0][0] === 1);
+    ok(results[0][1] === 1);
+    ok(results[1][0] === 2);
+    ok(results[1][1] === 2);
 
 }
