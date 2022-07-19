@@ -19,32 +19,6 @@ export interface IterableLifecycle<
   throw?: I["throw"];
 }
 
-export async function* asyncIterableLifecycle<T>(
-  iterable: AsyncIterable<T>,
-  lifecycle: IterableLifecycle<T>
-): AsyncIterable<T> {
-  const context: AsyncIteratorLifecycleContext<T> = {
-    done: false,
-    iterator: iterable[Symbol.asyncIterator](),
-    lifecycle
-  };
-
-  for (let result of iterateLifecycle(context)) {
-    if (!isIteratorYieldResult(result) && isPromise(result)) {
-      result = await result;
-    }
-    if (!isIteratorYieldResult<T>(result)) continue;
-    if (isIteratorYieldResult(result)) {
-      context.returned = yield result.value;
-    }
-    // Splitting done allows a full lifecycle to complete
-    // Allowing multiple done results
-    if (result.done) {
-      context.done = true;
-    }
-  }
-}
-
 interface IteratorLifecycleContext<T, I extends IterableLifecycleIterator<T, unknown> = IterableLifecycleIterator<T, unknown>> {
   iterator: I,
   lifecycle: IterableLifecycle<T>,
@@ -128,8 +102,6 @@ export function iterableLifecycle<T>(
     iterable: Iterable<T>,
     lifecycle: IterableLifecycle<T>
 ): Iterable<T> {
-
-
   return {
     [Symbol.iterator]() {
       const context: SyncIteratorLifecycleContext<T> = {
@@ -165,6 +137,62 @@ export function iterableLifecycle<T>(
           return { done: true, value: undefined };
         },
         throw(reason: unknown) {
+          context.done = true;
+          const result = lifecycleIterator.throw(reason);
+          if (isIteratorResult<T>(result)) {
+            return result;
+          }
+          return { done: true, value: undefined };
+        }
+      }
+      return iterator;
+    }
+  }
+}
+
+
+export function asyncIterableLifecycle<T>(
+    iterable: AsyncIterable<T>,
+    lifecycle: IterableLifecycle<T>
+): AsyncIterable<T> {
+  return {
+    [Symbol.asyncIterator]() {
+      const context: AsyncIteratorLifecycleContext<T> = {
+        done: false,
+        iterator: iterable[Symbol.asyncIterator](),
+        lifecycle
+      };
+      const lifecycleIterator: IterableLifecycleIterator<unknown> = iterateLifecycle(context)[Symbol.iterator]();
+      const iterator: AsyncIterator<T, unknown, unknown> =  {
+        async next(returned: unknown): Promise<IteratorResult<T>> {
+          context.returned = returned;
+          const lifecycleResult = lifecycleIterator.next();
+          if (!isIteratorYieldResult(lifecycleResult)) {
+            return { done: true, value: undefined };
+          }
+          let result = lifecycleResult.value;
+          if (isPromise(result)) {
+            result = await result;
+          }
+          if (isIteratorResult(result)) {
+            if (isIteratorYieldResult<T>(result)) {
+              return context.result = result;
+            } else if (result.done) {
+              context.done = true;
+            }
+          }
+          return iterator.next(returned);
+        },
+        async return(returned: unknown) {
+          context.returned = returned ?? context.returned;
+          context.done = true;
+          const result = lifecycleIterator.return();
+          if (isIteratorResult<T>(result)) {
+            return result;
+          }
+          return { done: true, value: undefined };
+        },
+        async throw(reason: unknown) {
           context.done = true;
           const result = lifecycleIterator.throw(reason);
           if (isIteratorResult<T>(result)) {

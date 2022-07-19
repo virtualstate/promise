@@ -1,4 +1,9 @@
-import {IterableLifecycle, iterableLifecycle, IterableLifecycleIterator} from "../iterable-lifecycle";
+import {
+    asyncIterableLifecycle,
+    IterableLifecycle,
+    iterableLifecycle,
+    IterableLifecycleIterator
+} from "../iterable-lifecycle";
 import {ok} from "../like";
 
 export default 1;
@@ -96,7 +101,7 @@ function events<T>(fn?: (event: LifecycleEvent) => void): IterableLifecycle<T> &
 {
     const lifecycle = events<number>();
     const source = [1, 2, 3];
-    const iterator: IterableLifecycleIterator<unknown> = iterableLifecycle(source, lifecycle)[Symbol.iterator]();
+    const iterator: Iterator<number, unknown, unknown> = iterableLifecycle(source, lifecycle)[Symbol.iterator]();
 
     iterator.next(5);
     iterator.next(6);
@@ -115,7 +120,7 @@ function events<T>(fn?: (event: LifecycleEvent) => void): IterableLifecycle<T> &
 {
     const lifecycle = events<number>();
     const source = [1, 2, 3];
-    const iterator: IterableLifecycleIterator<unknown> = iterableLifecycle(source, lifecycle)[Symbol.iterator]();
+    const iterator: Iterator<number, unknown, unknown> = iterableLifecycle(source, lifecycle)[Symbol.iterator]();
 
     iterator.next(5);
     iterator.next(6);
@@ -124,6 +129,29 @@ function events<T>(fn?: (event: LifecycleEvent) => void): IterableLifecycle<T> &
     iterator.return(8);
 
     console.log(lifecycle.events);
-    //
-    // ok(lifecycle.events.length === (((source.length - 1) * 2) + 2));
+}
+
+{
+    const lifecycle = events<number>();
+    const source = {
+        async *[Symbol.asyncIterator]() {
+            yield 1;
+            yield 2;
+            yield 3;
+        }
+    };
+    const iterator: AsyncIterator<number, unknown, unknown> = asyncIterableLifecycle(source, lifecycle)[Symbol.asyncIterator]();
+
+    await iterator.next(5);
+    await iterator.next(6);
+    await iterator.next(7);
+    // This is the final next, it will trigger the return as we have reached the
+    // end of our source
+    await iterator.next(8);
+    // This is beyond what will be seen
+    await iterator.next(9);
+    await iterator.return(10);
+
+    console.log(lifecycle.events);
+    ok(lifecycle.events.length === 10)
 }
