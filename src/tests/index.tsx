@@ -13,6 +13,7 @@ try {
   await import("./split-fn");
   await import("./walk");
   await import("./blend");
+  await import("./iterable-lifecycle");
 } catch (error) {
   if (error instanceof AggregateError) {
     console.error(error.errors);

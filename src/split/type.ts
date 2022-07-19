@@ -84,8 +84,8 @@ export interface SplitAsyncIterable<T>
   reverse(): AsyncIterable<T[]>;
   concat(...args: SplitConcatSyncInput<T>[]): AsyncIterable<T[]>;
   concat(other: SplitConcatInput<T>): AsyncIterable<T[]>;
-  push(other: SplitInput<T>): AsyncIterable<T[]>
-  push<M>(other: SplitInput<M>): AsyncIterable<(M | T)[]>
+  push(other: SplitInput<T>): AsyncIterable<T[]>;
+  push<M>(other: SplitInput<M>): AsyncIterable<(M | T)[]>;
   call(this: unknown, ...args: unknown[]): AsyncIterable<T[]>;
   group<K extends string | number | symbol>(
     fn: MapFn<T, K>
@@ -124,8 +124,14 @@ export interface Split<T> extends SplitAsyncIterable<T>, Promise<T[]> {
     fn: MapFn<T, K>
   ): AsyncMap<K, Split<T>>;
   reverse(): Split<T>;
-  push(other: SplitInput<T>, otherOptions?: TypedSplitOptions<T> | SplitOptions): Split<T>
-  push<M>(other: SplitInput<M>, otherOptions?: TypedSplitOptions<M> | SplitOptions): Split<M | T>
+  push(
+    other: SplitInput<T>,
+    otherOptions?: TypedSplitOptions<T> | SplitOptions
+  ): Split<T>;
+  push<M>(
+    other: SplitInput<M>,
+    otherOptions?: TypedSplitOptions<M> | SplitOptions
+  ): Split<M | T>;
   call(this: unknown, ...args: unknown[]): Split<T>;
   bind(this: unknown, ...args: unknown[]): SplitFn<T>;
 }

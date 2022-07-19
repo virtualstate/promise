@@ -1,173 +1,189 @@
-import {PushWriter} from "../push";
+import { PushWriter } from "../push";
 
 export interface BlenderTargetFn<T> {
-    (value: T): unknown | void | Promise<unknown | void>;
+  (value: T): unknown | void | Promise<unknown | void>;
 }
 
 export type BlenderTarget<T> = BlenderTargetFn<T> | PushWriter<T>;
 
 export interface BlendedIndexLike {
-    source: unknown;
-    target: unknown;
+  source: unknown;
+  target: unknown;
 }
 
 export interface BlendedIndex extends BlendedIndexLike {
-    source: number;
-    target: number;
+  source: number;
+  target: number;
 }
 
 export interface BlendOptions<I = BlendedIndex> {
-    blended?: I[];
-    random?: boolean;
+  blended?: I[];
+  random?: boolean;
 }
 
 export interface Blended extends BlendedIndex {
-    promise: Promise<void>;
+  promise: Promise<void>;
 }
 
 export interface BlenderBlend<I extends BlendedIndexLike = BlendedIndex> {
-    blend(options?: BlendOptions<I>): I[];
+  blend(options?: BlendOptions<I>): I[];
 }
 
-export interface BlenderConnect<I extends BlendedIndexLike = BlendedIndex, B = Blended> extends BlenderBlend<I> {
-    connect(options?: BlendOptions<I>): B[];
+export interface BlenderConnect<
+  I extends BlendedIndexLike = BlendedIndex,
+  B = Blended
+> extends BlenderBlend<I> {
+  connect(options?: BlendOptions<I>): B[];
 }
 
-export interface Blender<T = unknown, I extends BlendedIndexLike = BlendedIndex, B = Blended> extends BlenderConnect<I, B> {
-    source(source: AsyncIterable<T>, at?: I["source"]): I["source"];
-    target(target: BlenderTarget<T>, at?: I["target"]): I["target"];
+export interface Blender<
+  T = unknown,
+  I extends BlendedIndexLike = BlendedIndex,
+  B = Blended
+> extends BlenderConnect<I, B> {
+  source(source: AsyncIterable<T>, at?: I["source"]): I["source"];
+  target(target: BlenderTarget<T>, at?: I["target"]): I["target"];
 }
 
 export interface BlenderOptions extends BlendOptions {
-    close?: boolean;
+  close?: boolean;
 }
 
 export function blend<T = unknown>(options?: BlenderOptions): Blender<T> {
+  const targets: BlenderTarget<T>[] = [];
+  const sources: AsyncIterable<T>[] = [];
 
-    const targets: BlenderTarget<T>[] = [];
-    const sources: AsyncIterable<T>[] = [];
+  const connected = new WeakSet<object>();
 
-    const connected = new WeakSet<object>();
-
-    function pushAtTarget(target: number, value: T) {
-        const writer = targets[target];
-        if (!writer) return;
-        if (typeof writer === "function") {
-            return writer(value);
-        }
-        return writer.push(value);
+  function pushAtTarget(target: number, value: T) {
+    const writer = targets[target];
+    if (!writer) return;
+    if (typeof writer === "function") {
+      return writer(value);
     }
+    return writer.push(value);
+  }
 
-    function throwAtTarget(target: number, reason: T) {
-        const writer = targets[target];
-        if (!writer) return;
-        if (typeof writer === "function") {
-            return
-        }
-        return writer.throw?.(reason);
+  function throwAtTarget(target: number, reason: T) {
+    const writer = targets[target];
+    if (!writer) return;
+    if (typeof writer === "function") {
+      return;
     }
+    return writer.throw?.(reason);
+  }
 
-    function closeTarget(target: number) {
-        if (!options?.close) return;
-        const writer = targets[target];
-        if (!writer) return;
-        if (typeof writer === "function") {
-            return
-        }
-        if (connected.has(writer)) {
-            return;
-        }
-        return writer.close?.();
+  function closeTarget(target: number) {
+    if (!options?.close) return;
+    const writer = targets[target];
+    if (!writer) return;
+    if (typeof writer === "function") {
+      return;
     }
-
-    function shouldReconnect(index: number, source: AsyncIterable<T>) {
-        return sources[index] !== source;
+    if (connected.has(writer)) {
+      return;
     }
+    return writer.close?.();
+  }
 
-    async function connect(source: number, target: number): Promise<void> {
-        const iterable = sources[source];
-        if (!iterable) return;
-        const reconnect = shouldReconnect.bind(undefined, source, iterable);
-        try {
-            connected.add(iterable);
-            for await (const value of iterable) {
-                if (reconnect()) break;
-                await pushAtTarget(target, value);
-                if (reconnect()) break;
-            }
-            connected.delete(iterable);
-            if (reconnect()) {
-                // Swap connection
-                return await connect(source, target);
-            }
-        } catch (error) {
-            connected.delete(iterable);
-            throwAtTarget(target, error);
-            throw await Promise.reject(error);
-        } finally {
-            connected.delete(iterable);
-            closeTarget(target);
-        }
+  function shouldReconnect(index: number, source: AsyncIterable<T>) {
+    return sources[index] !== source;
+  }
+
+  async function connect(source: number, target: number): Promise<void> {
+    const iterable = sources[source];
+    if (!iterable) return;
+    const reconnect = shouldReconnect.bind(undefined, source, iterable);
+    try {
+      connected.add(iterable);
+      for await (const value of iterable) {
+        if (reconnect()) break;
+        await pushAtTarget(target, value);
+        if (reconnect()) break;
+      }
+      connected.delete(iterable);
+      if (reconnect()) {
+        // Swap connection
+        return await connect(source, target);
+      }
+    } catch (error) {
+      connected.delete(iterable);
+      throwAtTarget(target, error);
+      throw await Promise.reject(error);
+    } finally {
+      connected.delete(iterable);
+      closeTarget(target);
     }
+  }
 
-    function blend(additionalOptions?: BlendOptions) {
-        const allOptions = {
-            ...options,
-            ...additionalOptions
-        }
-        const { blended: inputBlend, random } = allOptions;
-        const result: BlendedIndex[] = [];
-        if (inputBlend?.length) {
-            for (const blend of inputBlend) {
-                result.push(blend);
-            }
-        }
-        if (random) {
-            const usedTargets = new Set(result.map(({ target }) => target));
-            const usedSources = new Set(result.map(({ source }) => source));
-            const targetsRemaining = [...targets.keys()].filter((index) => !usedTargets.has(index));
-            const sourcesRemaining = [...sources.keys()].filter((index) => !usedSources.has(index));
-            while (targetsRemaining.length && sourcesRemaining.length) {
-                const targetsRemainingIndex = Math.max(0, Math.round(Math.random() * targetsRemaining.length - 1));
-                const sourcesRemainingIndex = Math.max(0, Math.round(Math.random() * sourcesRemaining.length - 1));
-                const target = targetsRemaining[targetsRemainingIndex];
-                const source = sourcesRemaining[sourcesRemainingIndex];
-                result.push({
-                    target,
-                    source
-                });
-                targetsRemaining.splice(targetsRemainingIndex, 1);
-                sourcesRemaining.splice(sourcesRemainingIndex, 1);
-            }
-        }
-        return result;
+  function blend(additionalOptions?: BlendOptions) {
+    const allOptions = {
+      ...options,
+      ...additionalOptions,
+    };
+    const { blended: inputBlend, random } = allOptions;
+    const result: BlendedIndex[] = [];
+    if (inputBlend?.length) {
+      for (const blend of inputBlend) {
+        result.push(blend);
+      }
     }
-
-    return {
-        source(source, at) {
-            if (typeof at === "number") {
-                sources[at] = source;
-                return at;
-            }
-            return sources.push(source) - 1;
-        },
-        target(target, at) {
-            if (typeof at === "number") {
-                targets[at] = target;
-                return at;
-            }
-            return targets.push(target) - 1;
-        },
-        blend,
-        connect(additionalOptions) {
-            const blended = blend(additionalOptions);
-            return blended.map(({ source, target }): Blended => ({
-                source,
-                target,
-                promise: connect(source, target)
-            }));
-        }
+    if (random) {
+      const usedTargets = new Set(result.map(({ target }) => target));
+      const usedSources = new Set(result.map(({ source }) => source));
+      const targetsRemaining = [...targets.keys()].filter(
+        (index) => !usedTargets.has(index)
+      );
+      const sourcesRemaining = [...sources.keys()].filter(
+        (index) => !usedSources.has(index)
+      );
+      while (targetsRemaining.length && sourcesRemaining.length) {
+        const targetsRemainingIndex = Math.max(
+          0,
+          Math.round(Math.random() * targetsRemaining.length - 1)
+        );
+        const sourcesRemainingIndex = Math.max(
+          0,
+          Math.round(Math.random() * sourcesRemaining.length - 1)
+        );
+        const target = targetsRemaining[targetsRemainingIndex];
+        const source = sourcesRemaining[sourcesRemainingIndex];
+        result.push({
+          target,
+          source,
+        });
+        targetsRemaining.splice(targetsRemainingIndex, 1);
+        sourcesRemaining.splice(sourcesRemainingIndex, 1);
+      }
     }
+    return result;
+  }
 
-
+  return {
+    source(source, at) {
+      if (typeof at === "number") {
+        sources[at] = source;
+        return at;
+      }
+      return sources.push(source) - 1;
+    },
+    target(target, at) {
+      if (typeof at === "number") {
+        targets[at] = target;
+        return at;
+      }
+      return targets.push(target) - 1;
+    },
+    blend,
+    connect(additionalOptions) {
+      const blended = blend(additionalOptions);
+      return blended.map(
+        ({ source, target }): Blended => ({
+          source,
+          target,
+          promise: connect(source, target),
+        })
+      );
+    },
+  };
 }

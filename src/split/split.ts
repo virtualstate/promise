@@ -82,7 +82,7 @@ export function split<T>(
     let readPromise: Promise<void> | undefined = undefined;
 
     function getMainTarget() {
-      return mainTarget = mainTarget ?? new Push(options);
+      return (mainTarget = mainTarget ?? new Push(options));
     }
 
     function bind(that: unknown, ...args: unknown[]) {
@@ -109,11 +109,11 @@ export function split<T>(
         }
         for await (const snapshot of innerCall()) {
           for (const output of check(
-              Array.isArray(snapshot)
-                  ? snapshot
-                  : isIterable(snapshot)
-                      ? Array.from(snapshot)
-                      : [snapshot]
+            Array.isArray(snapshot)
+              ? snapshot
+              : isIterable(snapshot)
+              ? Array.from(snapshot)
+              : [snapshot]
           )) {
             if (options?.keep) {
               for (const index of output.keys()) {
@@ -445,15 +445,15 @@ export function split<T>(
       };
     }
 
-    function push(other: SplitInput<T>): AsyncIterable<T[]>
-    function push<M>(other: SplitInput<M>): AsyncIterable<(M | T)[]>
+    function push(other: SplitInput<T>): AsyncIterable<T[]>;
+    function push<M>(other: SplitInput<M>): AsyncIterable<(M | T)[]>;
     function push(other: SplitInput<T>): AsyncIterable<T[]> {
       return {
         async *[Symbol.asyncIterator]() {
-          yield * source;
-          yield * createSplitContext(other);
-        }
-      }
+          yield* source;
+          yield* createSplitContext(other);
+        },
+      };
     }
 
     function group<K extends string | number | symbol>(
@@ -686,9 +686,12 @@ export function split<T>(
           },
         },
         join: {
-          value<M>(other: SplitInput<M>, otherOptions?: TypedSplitOptions<M> | SplitOptions) {
+          value<M>(
+            other: SplitInput<M>,
+            otherOptions?: TypedSplitOptions<M> | SplitOptions
+          ) {
             return split(context.push(other), otherOptions ?? options);
-          }
+          },
         },
         at: {
           value: context.at,
@@ -795,7 +798,10 @@ export function split<T>(
         });
       }
 
-      push<M>(other: SplitInput<M>, otherOptions?: TypedSplitOptions<M> | SplitOptions) {
+      push<M>(
+        other: SplitInput<M>,
+        otherOptions?: TypedSplitOptions<M> | SplitOptions
+      ) {
         return split(context.push(other), otherOptions ?? options);
       }
 

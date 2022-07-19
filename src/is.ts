@@ -16,12 +16,21 @@ export function isIterable<T>(value: unknown): value is Iterable<T> {
 }
 
 export function isIteratorYieldResult<T>(
-  value: unknown
+    value: unknown
 ): value is IteratorYieldResult<T> {
   return !!(
-    isLike<Partial<IteratorResult<T>>>(value) &&
-    typeof value.done === "boolean" &&
-    !value.done
+      isLike<Partial<IteratorResult<T>>>(value) &&
+      typeof value.done === "boolean" &&
+      !value.done
+  );
+}
+
+export function isIteratorResult<T>(
+    value: unknown
+): value is IteratorYieldResult<T> {
+  return !!(
+      isLike<Partial<IteratorResult<T>>>(value) &&
+      typeof value.done === "boolean"
   );
 }
 

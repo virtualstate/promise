@@ -846,7 +846,6 @@ import { isAsyncIterable } from "../is";
   ok(count === 2);
 }
 
-
 {
   const [ones] = split({
     async *[Symbol.asyncIterator]() {
@@ -855,23 +854,23 @@ import { isAsyncIterable } from "../is";
       yield [1, 2, 3];
     },
   })
-      .push({
-        async *[Symbol.asyncIterator]() {
-          yield 1;
-        }
-      })
-      .push({
-        async *[Symbol.asyncIterator]() {
-          yield 0;
-        }
-      })
-      .push({
-        async *[Symbol.asyncIterator]() {
-          yield 1;
-        }
-      })
-      .groupToMap((value) => (value === 1 ? "one" : "unknown"))
-      .get("one");
+    .push({
+      async *[Symbol.asyncIterator]() {
+        yield 1;
+      },
+    })
+    .push({
+      async *[Symbol.asyncIterator]() {
+        yield 0;
+      },
+    })
+    .push({
+      async *[Symbol.asyncIterator]() {
+        yield 1;
+      },
+    })
+    .groupToMap((value) => (value === 1 ? "one" : "unknown"))
+    .get("one");
 
   let total = 0;
   for await (const one of ones) {
@@ -883,26 +882,25 @@ import { isAsyncIterable } from "../is";
   ok(total === 4);
 }
 
-
 {
   const info = split(
-      {
-        async * [Symbol.asyncIterator]() {
-          console.log("Running");
-          yield 1;
-          yield 2;
-          yield 3;
-          console.log("Finished");
-        }
+    {
+      async *[Symbol.asyncIterator]() {
+        console.log("Running");
+        yield 1;
+        yield 2;
+        yield 3;
+        console.log("Finished");
       },
-      {
-        keep: true
-      }
-  )
+    },
+    {
+      keep: true,
+    }
+  );
 
   let initial = 0;
   for await (const snapshot of info) {
-    console.log({ snapshot })
+    console.log({ snapshot });
     initial += 1;
   }
   console.log({ initial });
@@ -910,7 +908,7 @@ import { isAsyncIterable } from "../is";
 
   let next = 0;
   for await (const snapshot of info) {
-    console.log({ snapshot })
+    console.log({ snapshot });
     next += 1;
   }
   console.log({ next });
