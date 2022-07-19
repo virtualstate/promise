@@ -90,29 +90,33 @@ export function blend<T = unknown>(options?: BlenderOptions): Blender<T> {
     return sources[index] !== source;
   }
 
-  async function connect(source: number, target: number): Promise<void> {
+  async function connect(source: number, targets: number[]): Promise<void> {
     const iterable = sources[source];
     if (!iterable) return;
+    if (connected.has(iterable)) return;
     const reconnect = shouldReconnect.bind(undefined, source, iterable);
     try {
       connected.add(iterable);
       for await (const value of iterable) {
         if (reconnect()) break;
-        await pushAtTarget(target, value);
+        for (const target of targets) {
+          pushAtTarget(target, value);
+        }
         if (reconnect()) break;
       }
       connected.delete(iterable);
       if (reconnect()) {
         // Swap connection
-        return await connect(source, target);
+        return await connect(source, targets);
       }
     } catch (error) {
       connected.delete(iterable);
-      throwAtTarget(target, error);
+      for (const target of targets) {
+        throwAtTarget(source, error);
+      }
       throw await Promise.reject(error);
     } finally {
       connected.delete(iterable);
-      closeTarget(target);
     }
   }
 
@@ -177,13 +181,35 @@ export function blend<T = unknown>(options?: BlenderOptions): Blender<T> {
     blend,
     connect(additionalOptions) {
       const blended = blend(additionalOptions);
-      return blended.map(
-        ({ source, target }): Blended => ({
+      const sources = [
+          ...new Set(blended.map(({ source }) => source))
+      ];
+      let remaining = [...blended];
+      function done(finished: BlendedIndex[]) {
+        remaining = remaining.filter(value => !finished.includes(value))
+        const targets = finished.map(({ target }) => target);
+        const closeTargets = targets.filter(target => {
+          const index = remaining.findIndex(value => value.target === target);
+          return index === -1;
+        });
+        for (const target of closeTargets) {
+          closeTarget(target);
+        }
+      }
+      return sources.flatMap((source): Blended[] => {
+        const indexes = blended
+            .filter(value => value.source === source);
+        const targets = indexes
+            .map(({ target }) => target);
+        const promise = connect(source, targets).finally(
+            () => done(indexes)
+        );
+        return targets.map(target => ({
           source,
           target,
-          promise: connect(source, target),
-        })
-      );
+          promise
+        }));
+      });
     },
   };
 }

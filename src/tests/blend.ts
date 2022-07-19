@@ -198,8 +198,8 @@ import {asyncIterableLifecycle} from "../iterable-lifecycle";
   ok(results[1][0] === 2);
   ok(results[1][1] === 2);
 
-  // The source should have been read twice at this point
-  ok((((results.length * 2) + 4)) * 2 === initialEvents);
+  // The source should have been read once
+  ok((((results.length * 2) + 4)) === initialEvents);
 }
 
 {
