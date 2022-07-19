@@ -17,10 +17,14 @@ export interface LinkedList<T> {
 }
 
 export abstract class AbstractLinkedList<T> implements LinkedList<T> {
-  protected constructor(private map: AbstractMap<Node<T>>) {}
+  protected constructor(private _map?: AbstractMap<Node<T>>) {}
 
-  protected setMap(map: AbstractMap<Node<T>>) {
-    this.map = map;
+  protected set map(map: AbstractMap<Node<T>>) {
+    this._map = map;
+  }
+
+  protected get map() {
+    return this._map;
   }
 
   get(pointer: object): Node<T> | undefined {

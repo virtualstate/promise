@@ -2,9 +2,9 @@ import { AbstractLinkedList } from "./abstract-linked-list";
 
 export class WeakLinkedList<T> extends AbstractLinkedList<T> {
   constructor() {
-    super(new WeakMap());
+    super();
   }
   clear() {
-    this.setMap(new WeakMap());
+    this.map = new WeakMap();
   }
 }
