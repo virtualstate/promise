@@ -1,6 +1,9 @@
 import {isIteratorResult, isIteratorYieldResult, isPromise} from "./is";
-import { ok } from "./like";
 
+/**
+ * @experimental
+ * @internal
+ */
 export interface IterableLifecycleIterator<
   T,
   Result = IteratorResult<T> | undefined
@@ -10,6 +13,10 @@ export interface IterableLifecycleIterator<
   throw?(reason?: unknown, arg2?: unknown): Result;
 }
 
+/**
+ * @experimental
+ * @internal
+ */
 export interface IterableLifecycle<
   T,
   I extends IterableLifecycleIterator<T> = IterableLifecycleIterator<T>
@@ -98,6 +105,12 @@ function *iterateLifecycle<T, C extends IteratorLifecycleContext<T>>(context: C)
   }
 }
 
+/**
+ * @param iterable
+ * @param lifecycle
+ * @experimental
+ * @internal
+ */
 export function iterableLifecycle<T>(
     iterable: Iterable<T>,
     lifecycle: IterableLifecycle<T>
@@ -151,6 +164,12 @@ export function iterableLifecycle<T>(
 }
 
 
+/**
+ * @param iterable
+ * @param lifecycle
+ * @experimental
+ * @internal
+ */
 export function asyncIterableLifecycle<T>(
     iterable: AsyncIterable<T>,
     lifecycle: IterableLifecycle<T>
