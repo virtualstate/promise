@@ -151,12 +151,13 @@ import {asyncIterableLifecycle} from "../iterable-lifecycle";
 {
   const blender = blend({ close: true });
 
+  const lifecycle = events<unknown>();
   const source = new Push();
   source.push(1);
   source.push(2);
   source.close();
 
-  const sourceIndex = blender.source(source);
+  const sourceIndex = blender.source(asyncIterableLifecycle(source, lifecycle));
 
   const targetA = new Push();
   const targetAIndex = blender.target(targetA);
@@ -179,6 +180,9 @@ import {asyncIterableLifecycle} from "../iterable-lifecycle";
   // Target will now be loaded
   await Promise.all([promiseA, promiseB]);
 
+  const initialEvents = lifecycle.events.length;
+  ok(initialEvents);
+
   const results = [];
 
   for await (const snapshot of union([targetA, targetB])) {
@@ -186,12 +190,16 @@ import {asyncIterableLifecycle} from "../iterable-lifecycle";
   }
 
   console.log(results);
+  ok(initialEvents === lifecycle.events.length);
 
   ok(results.length === 2);
   ok(results[0][0] === 1);
   ok(results[0][1] === 1);
   ok(results[1][0] === 2);
   ok(results[1][1] === 2);
+
+  // The source should have been read twice at this point
+  ok((((results.length * 2) + 4)) * 2 === initialEvents);
 }
 
 {
