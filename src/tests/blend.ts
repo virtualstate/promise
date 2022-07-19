@@ -3,6 +3,8 @@ import { all } from "../all";
 import { ok } from "../like";
 import { Push } from "../push";
 import { union } from "@virtualstate/union";
+import {events} from "./iterable-lifecycle";
+import {asyncIterableLifecycle} from "../iterable-lifecycle";
 
 {
   const blender = blend({ random: true });
@@ -193,19 +195,22 @@ import { union } from "@virtualstate/union";
 }
 
 {
+  const lifecycleA = events<unknown>();
+  const lifecycleB = events<unknown>();
+
   const blender = blend({ close: true });
 
   const sourceA = new Push();
   sourceA.push(1);
   sourceA.push(2);
   sourceA.close();
-  const sourceAIndex = blender.source(sourceA);
+  const sourceAIndex = blender.source(asyncIterableLifecycle(sourceA, lifecycleA));
 
   const sourceB = new Push();
   sourceB.push(3);
   sourceB.push(4);
   sourceB.close();
-  const sourceBIndex = blender.source(sourceB);
+  const sourceBIndex = blender.source(asyncIterableLifecycle(sourceB, lifecycleB));
 
   const target = new Push();
   const targetIndex = blender.target(target);
@@ -226,13 +231,30 @@ import { union } from "@virtualstate/union";
   // Target will now be loaded
   await promise;
 
+  const initialEventsA = lifecycleA.events.length;
+  const initialEventsB = lifecycleB.events.length;
+
+  // Ensure we have already read our sources by this point
+  ok(initialEventsA);
+  ok(initialEventsB);
+  ok(initialEventsA === initialEventsB);
+
   const results = [];
 
   for await (const snapshot of target) {
     results.push(snapshot);
   }
 
-  console.log(results);
+  console.log({
+    results,
+    A: lifecycleA.events.length,
+    B: lifecycleB.events.length
+  });
+
+  // Ensure we haven't read again from our sources
+  ok(initialEventsA === lifecycleA.events.length);
+  ok(initialEventsB === lifecycleB.events.length);
+
   ok(results.length === 4);
   ok(results.includes(1));
   ok(results.includes(2));

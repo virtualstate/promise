@@ -12,8 +12,8 @@ try {
   await import("./split");
   await import("./split-fn");
   await import("./walk");
-  await import("./blend");
   await import("./iterable-lifecycle");
+  await import("./blend");
 } catch (error) {
   if (error instanceof AggregateError) {
     console.error(error.errors);

@@ -8,7 +8,7 @@ import {ok} from "../like";
 
 export default 1;
 
-type LifecycleEvent =
+export type LifecycleEvent =
   | {
       type: "next";
       args: unknown[];
@@ -30,7 +30,7 @@ type LifecycleEvent =
       args: unknown[];
     };
 
-function events<T>(fn?: (event: LifecycleEvent) => void): IterableLifecycle<T> & { events: LifecycleEvent[] } {
+export function events<T>(fn?: (event: LifecycleEvent) => void): IterableLifecycle<T> & { events: LifecycleEvent[] } {
     const events: LifecycleEvent[] = [];
     function push(event: LifecycleEvent) {
         events.push(event);
