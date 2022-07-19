@@ -1,6 +1,7 @@
 /* c8 ignore start */
-import { createDownstreamGenerator, Push } from "../downstream";
+import { createDownstreamGenerator } from "../downstream";
 import { union } from "@virtualstate/union";
+import {Push} from "../push";
 
 async function* create() {
   const a = (async function* () {
@@ -88,8 +89,6 @@ async function* yielding() {
   yield 1;
   console.log("finished");
 }
-
-debugger;
 
 async function* unionPush() {
   console.log("union push start");

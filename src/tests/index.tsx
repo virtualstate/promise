@@ -6,7 +6,6 @@ try {
   await import("./the-thing");
   await import("./readme");
   await import("./typed");
-  await import("./downstream");
   await import("./sync");
   await import("./push");
   await import("./split");

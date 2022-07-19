@@ -4,6 +4,7 @@ import { union } from "@virtualstate/union";
 import { isAsyncIterable } from "./is";
 import { isLike } from "./like";
 import { anAsyncThing, TheAsyncThing } from "./the-thing";
+import {Push} from "./push";
 
 const IsKeySymbol = Symbol("IsKey");
 type Key = { [IsKeySymbol]: true };
@@ -136,73 +137,5 @@ export async function* createDownstreamGenerator<T>(
       yield [key, value];
     }
     done.set(key, true);
-  }
-}
-
-interface ResolveFn<T> {
-  (value: T): void;
-}
-
-// Please ignore this class
-// There is a nicer way to do this, I just haven't included as a dependency... yet
-export class Push<T> {
-  private values: T[] = [];
-
-  private resolve: ResolveFn<void>[] = [];
-  private active = true;
-
-  private doneResolve: ResolveFn<void>;
-  private donePromise: Promise<void>;
-
-  push(value: T) {
-    if (!this.active) return;
-    this.values.push(value);
-    this.resolveAll();
-  }
-
-  private resolveAll() {
-    if (!this.resolve.length) {
-      return;
-    }
-    const fns = [...this.resolve];
-    this.resolve = [];
-    for (const fn of fns) {
-      fn();
-    }
-  }
-
-  close() {
-    if (!this.active) return;
-    this.active = false;
-    this.resolveAll();
-    this.doneResolve?.();
-  }
-
-  async *[Symbol.asyncIterator]() {
-    if (!this.doneResolve) {
-      this.donePromise = new Promise((fn) => (this.doneResolve = fn));
-    }
-    if (!this.active) return;
-    // console.log("starting push watch");
-    let index = -1;
-    do {
-      while (nextIndex() < this.values.length) {
-        index = nextIndex();
-        yield this.values[index];
-      }
-      if (this.active) {
-        // console.log("waiting");
-        await Promise.any([
-          new Promise((resolve) => this.resolve.push(resolve)),
-          this.donePromise,
-        ]);
-        // console.log("resolved");
-      }
-    } while (this.active || nextIndex() < this.values.length);
-    // console.log("finished push");
-
-    function nextIndex() {
-      return index + 1;
-    }
   }
 }
