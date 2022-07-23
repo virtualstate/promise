@@ -23,12 +23,8 @@ export abstract class AbstractLinkedList<T> implements LinkedList<T> {
     this._map = map;
   }
 
-  protected get map() {
-    return this._map;
-  }
-
   get(pointer: object): Node<T> | undefined {
-    return this.map.get(pointer);
+    return this._map.get(pointer);
   }
 
   insert(after: object, pointer: object, value: T): void {
@@ -37,12 +33,13 @@ export abstract class AbstractLinkedList<T> implements LinkedList<T> {
     }
     const reference = after && this.get(after);
     ok(!after || reference, "Pointer does not belong in this list");
-    this.map.set(pointer, {
+    const { _map: map } = this;
+    map.set(pointer, {
       value,
       next: reference ? reference.next : undefined,
     });
     if (after) {
-      this.map.set(after, {
+      map.set(after, {
         ...reference,
         next: pointer,
       });
