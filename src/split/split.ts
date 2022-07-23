@@ -615,10 +615,13 @@ export function split<T>(
     // const source = fn;
     const symbols = options ? Object.getOwnPropertySymbols(options) : [];
 
+    const symbolOptions = {};
+
     for (const symbol of symbols) {
       const descriptor = Object.getOwnPropertyDescriptor(options, symbol);
       if (!descriptor) continue;
       Object.defineProperty(fn, symbol, descriptor);
+      Object.defineProperty(symbolOptions, symbol, descriptor);
     }
 
     Object.defineProperties(fn, {
@@ -672,6 +675,7 @@ export function split<T>(
       entries: {
         value() {
           return split(context.entries(), {
+            ...symbolOptions,
             keep: options?.keep,
           });
         },
