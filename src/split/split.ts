@@ -91,7 +91,7 @@ export function split<T>(
       };
     }
 
-    function* check<T>(snapshot: T[]): Iterable<T[]> {
+    function* check<M = T>(snapshot: M[]): Iterable<M[]> {
       if (!empty && snapshot.length === 0) {
         return;
       }
@@ -107,6 +107,7 @@ export function split<T>(
         if (options?.keep && !mainTarget) {
           void getMainTarget();
         }
+        let yielded = false;
         for await (const snapshot of innerCall()) {
           for (const output of check(
             Array.isArray(snapshot)
@@ -129,7 +130,19 @@ export function split<T>(
               }
             }
             yield output;
+            yielded = true;
           }
+        }
+        if (!yielded) {
+          // Yield an empty result so that when we use a promise
+          // we get a consistent result, never giving an undefined default
+          //
+          // This also means we get _at least one_ yield always through the main
+          // target
+          //
+          // The push function will push this to mainTarget but to none of the
+          // indexed targets
+          yield [];
         }
       }
 
