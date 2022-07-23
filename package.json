@@ -1,6 +1,6 @@
 {
   "name": "@virtualstate/promise",
-  "version": "1.1.5-alpha.76",
+  "version": "1.1.5-alpha.77",
   "main": "./esnext/index.js",
   "module": "./esnext/index.js",
   "types": "./esnext/index.d.ts",
