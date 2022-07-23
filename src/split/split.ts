@@ -611,243 +611,271 @@ export function split<T>(
     };
   }
 
+  function defineProperties(fn: unknown): asserts fn is SplitCore<T> {
+    // const source = fn;
+    const symbols = options ? Object.getOwnPropertySymbols(options) : [];
+
+    for (const symbol of symbols) {
+      const descriptor = Object.getOwnPropertyDescriptor(options, symbol);
+      if (!descriptor) continue;
+      Object.defineProperty(fn, symbol, descriptor);
+    }
+
+    Object.defineProperties(fn, {
+      [Symbol.asyncIterator]: {
+        value: context[Symbol.asyncIterator],
+      },
+      [Symbol.iterator]: {
+        value: context[Symbol.iterator],
+      },
+      find: {
+        value: context.find,
+      },
+      findIndex: {
+        value: context.findIndex,
+      },
+      filter: {
+        value(fn: FilterFn<T>) {
+          return split(context.filter(fn), options);
+        },
+      },
+      take: {
+        value(count: number) {
+          return split(context.take(count), options);
+        },
+      },
+      map: {
+        value<M>(fn: MapFn<T, M>, otherOptions?: SplitOptions) {
+          return split(context.map(fn), otherOptions ?? options);
+        },
+      },
+      flatMap: {
+        value<M>(fn: MapFn<T, M[] | M>, otherOptions?: SplitOptions) {
+          return split(context.flatMap(fn), otherOptions ?? options);
+        },
+      },
+      concat: {
+        value(other: SplitConcatInput<T>) {
+          return split(context.concat(other), options);
+        },
+      },
+      reverse: {
+        value() {
+          return split(context.reverse(), options);
+        },
+      },
+      copyWithin: {
+        value(target: number, start?: number, end?: number) {
+          return split(context.copyWithin(target, start, end), options);
+        },
+      },
+      entries: {
+        value() {
+          return split(context.entries(), {
+            keep: options?.keep,
+          });
+        },
+      },
+      group: {
+        value<K extends string | number | symbol>(fn: MapFn<T, K>) {
+          const proxied = new Proxy(context.group(fn), {
+            get(target, name) {
+              ok<K>(name);
+              const result = target[name];
+              return split(result, options);
+            },
+          });
+          ok<Record<K, SplitCore<T>>>(proxied);
+          return proxied;
+        },
+      },
+      groupToMap: {
+        value<K extends string | number | symbol>(fn: MapFn<T, K>) {
+          const map = context.groupToMap(fn);
+          const get = map.get.bind(map);
+          map.get = (key) => {
+            return split(get(key), options);
+          };
+          return map;
+        },
+      },
+      push: {
+        value<M>(
+            other: SplitInput<M>,
+            otherOptions?: TypedSplitOptions<M> | SplitOptions
+        ) {
+          return split(context.push(other), otherOptions ?? options);
+        },
+      },
+      at: {
+        value: context.at,
+      },
+      every: {
+        value: context.every,
+      },
+      includes: {
+        value: context.includes,
+      },
+      then: {
+        value: async.then,
+      },
+      catch: {
+        value: async.catch,
+      },
+      finally: {
+        value: async.finally,
+      },
+    });
+  }
+
+  function isSplit(object: unknown): object is SplitCore<T> {
+    if (!isLike<Partial<Record<keyof SplitCore<unknown>, undefined>>>(object)) return false;
+    return (
+        typeof object.then === "function" &&
+        typeof object[Symbol.asyncIterator] === "function" &&
+        typeof object[Symbol.iterator] === "function"
+    );
+  }
+
+  function assertSplit(object: unknown): asserts object is SplitCore<T> {
+    ok(isSplit(object));
+  }
+
   function createFn() {
     const fn: unknown = function SplitFn(this: unknown, ...args: unknown[]) {
       return split(context.bind(this, ...args), options);
     };
     defineProperties(fn);
     return fn;
-
-    function defineProperties(fn: unknown): asserts fn is SplitFn<T> {
-      assertSplitInputFn(fn);
-      Object.defineProperties(fn, {
-        [Symbol.asyncIterator]: {
-          value: context[Symbol.asyncIterator],
-        },
-        [Symbol.iterator]: {
-          value: context[Symbol.iterator],
-        },
-        find: {
-          value: context.find,
-        },
-        findIndex: {
-          value: context.findIndex,
-        },
-        filter: {
-          value(fn: FilterFn<T>) {
-            return split(context.filter(fn), options);
-          },
-        },
-        take: {
-          value(count: number) {
-            return split(context.take(count), options);
-          },
-        },
-        map: {
-          value<M>(fn: MapFn<T, M>, otherOptions?: SplitOptions) {
-            return split(context.map(fn), otherOptions ?? options);
-          },
-        },
-        flatMap: {
-          value<M>(fn: MapFn<T, M[] | M>, otherOptions?: SplitOptions) {
-            return split(context.flatMap(fn), otherOptions ?? options);
-          },
-        },
-        concat: {
-          value(other: SplitConcatInput<T>) {
-            return split(context.concat(other), options);
-          },
-        },
-        reverse: {
-          value() {
-            return split(context.reverse(), options);
-          },
-        },
-        copyWithin: {
-          value(target: number, start?: number, end?: number) {
-            return split(context.copyWithin(target, start, end), options);
-          },
-        },
-        entries: {
-          value() {
-            return split(context.entries(), {
-              keep: options?.keep,
-            });
-          },
-        },
-        group: {
-          value<K extends string | number | symbol>(fn: MapFn<T, K>) {
-            const proxied = new Proxy(context.group(fn), {
-              get(target, name) {
-                ok<K>(name);
-                const result = target[name];
-                return split(result, options);
-              },
-            });
-            ok<Record<K, SplitCore<T>>>(proxied);
-            return proxied;
-          },
-        },
-        groupToMap: {
-          value<K extends string | number | symbol>(fn: MapFn<T, K>) {
-            const map = context.groupToMap(fn);
-            const get = map.get.bind(map);
-            map.get = (key) => {
-              return split(get(key), options);
-            };
-            return map;
-          },
-        },
-        join: {
-          value<M>(
-            other: SplitInput<M>,
-            otherOptions?: TypedSplitOptions<M> | SplitOptions
-          ) {
-            return split(context.push(other), otherOptions ?? options);
-          },
-        },
-        at: {
-          value: context.at,
-        },
-        every: {
-          value: context.every,
-        },
-        includes: {
-          value: context.includes,
-        },
-        then: {
-          value: async.then,
-        },
-        catch: {
-          value: async.catch,
-        },
-        finally: {
-          value: async.finally,
-        },
-      });
-    }
   }
 
   function createInstance() {
-    class Split implements SplitCore<T>, Promise<T[]> {
-      then: Promise<T[]>["then"] = async.then.bind(async);
-      catch: Promise<T[]>["catch"] = async.catch.bind(async);
-      finally: Promise<T[]>["finally"] = async.finally.bind(async);
+    class Split { }
+    defineProperties(Split.prototype);
+    const instance = new Split();
+    assertSplit(instance);
+    return instance;
 
-      get [Symbol.toStringTag]() {
-        return "[object Split]";
-      }
-
-      get [Symbol.asyncIterator]() {
-        return context[Symbol.asyncIterator];
-      }
-
-      get [Symbol.iterator]() {
-        return context[Symbol.iterator];
-      }
-
-      get at() {
-        return context.at;
-      }
-
-      get find() {
-        return context.find;
-      }
-
-      get findIndex() {
-        return context.findIndex;
-      }
-
-      get every() {
-        return context.every;
-      }
-
-      get includes() {
-        return context.includes;
-      }
-
-      filter(fn: FilterFn<T>) {
-        return split(context.filter(fn), options);
-      }
-
-      take(count: number) {
-        return split(context.take(count), options);
-      }
-
-      map<M>(
-        fn: MapFn<T, M>,
-        otherOptions?: TypedSplitOptions<M> | SplitOptions
-      ) {
-        return split(context.map(fn), otherOptions ?? options);
-      }
-
-      flatMap<M>(
-        fn: MapFn<T, M[] | M>,
-        otherOptions?: TypedSplitOptions<M> | SplitOptions
-      ) {
-        return split(context.flatMap(fn), otherOptions ?? options);
-      }
-
-      concat(other: SplitConcatInput<T>, ...rest: T[]) {
-        if (rest.length) {
-          ok<T>(other);
-          return split(context.concat(other, ...rest));
-        } else {
-          return split(context.concat(other), options);
-        }
-      }
-
-      copyWithin(target: number, start?: number, end?: number) {
-        return split(context.copyWithin(target, start, end), options);
-      }
-
-      reverse() {
-        return split(context.reverse(), options);
-      }
-
-      entries() {
-        return split(context.entries(), {
-          keep: options?.keep,
-        });
-      }
-
-      push<M>(
-        other: SplitInput<M>,
-        otherOptions?: TypedSplitOptions<M> | SplitOptions
-      ) {
-        return split(context.push(other), otherOptions ?? options);
-      }
-
-      group<K extends string | number | symbol>(fn: MapFn<T, K>) {
-        const proxied = new Proxy(context.group(fn), {
-          get(target, name) {
-            ok<K>(name);
-            const result = target[name];
-            return split(result, options);
-          },
-        });
-        ok<Record<K, SplitCore<T>>>(proxied);
-        return proxied;
-      }
-
-      groupToMap<K extends string | number | symbol>(fn: MapFn<T, K>) {
-        const map = context.groupToMap(fn);
-        const get = map.get.bind(map);
-        map.get = (key) => {
-          return split(get(key), options);
-        };
-        ok<AsyncMap<K, SplitCore<T>>>(map);
-        return map;
-      }
-
-      call(that: unknown, ...args: unknown[]) {
-        return split<T>(context.call.bind(undefined, that, ...args), options);
-      }
-
-      bind(that: unknown, ...args: unknown[]) {
-        return split(context.bind(that, ...args), options);
-      }
-    }
-    return new Split();
+    // class Split implements SplitCore<T>, Promise<T[]> {
+    //
+    //   then: Promise<T[]>["then"] = async.then.bind(async);
+    //   catch: Promise<T[]>["catch"] = async.catch.bind(async);
+    //   finally: Promise<T[]>["finally"] = async.finally.bind(async);
+    //
+    //   get [Symbol.toStringTag]() {
+    //     return "[object Split]";
+    //   }
+    //
+    //   get [Symbol.asyncIterator]() {
+    //     return context[Symbol.asyncIterator];
+    //   }
+    //
+    //   get [Symbol.iterator]() {
+    //     return context[Symbol.iterator];
+    //   }
+    //
+    //   get at() {
+    //     return context.at;
+    //   }
+    //
+    //   get find() {
+    //     return context.find;
+    //   }
+    //
+    //   get findIndex() {
+    //     return context.findIndex;
+    //   }
+    //
+    //   get every() {
+    //     return context.every;
+    //   }
+    //
+    //   get includes() {
+    //     return context.includes;
+    //   }
+    //
+    //   filter(fn: FilterFn<T>) {
+    //     return split(context.filter(fn), options);
+    //   }
+    //
+    //   take(count: number) {
+    //     return split(context.take(count), options);
+    //   }
+    //
+    //   map<M>(
+    //     fn: MapFn<T, M>,
+    //     otherOptions?: TypedSplitOptions<M> | SplitOptions
+    //   ) {
+    //     return split(context.map(fn), otherOptions ?? options);
+    //   }
+    //
+    //   flatMap<M>(
+    //     fn: MapFn<T, M[] | M>,
+    //     otherOptions?: TypedSplitOptions<M> | SplitOptions
+    //   ) {
+    //     return split(context.flatMap(fn), otherOptions ?? options);
+    //   }
+    //
+    //   concat(other: SplitConcatInput<T>, ...rest: T[]) {
+    //     if (rest.length) {
+    //       ok<T>(other);
+    //       return split(context.concat(other, ...rest));
+    //     } else {
+    //       return split(context.concat(other), options);
+    //     }
+    //   }
+    //
+    //   copyWithin(target: number, start?: number, end?: number) {
+    //     return split(context.copyWithin(target, start, end), options);
+    //   }
+    //
+    //   reverse() {
+    //     return split(context.reverse(), options);
+    //   }
+    //
+    //   entries() {
+    //     return split(context.entries(), {
+    //       keep: options?.keep,
+    //     });
+    //   }
+    //
+    //   push<M>(
+    //     other: SplitInput<M>,
+    //     otherOptions?: TypedSplitOptions<M> | SplitOptions
+    //   ) {
+    //     return split(context.push(other), otherOptions ?? options);
+    //   }
+    //
+    //   group<K extends string | number | symbol>(fn: MapFn<T, K>) {
+    //     const proxied = new Proxy(context.group(fn), {
+    //       get(target, name) {
+    //         ok<K>(name);
+    //         const result = target[name];
+    //         return split(result, options);
+    //       },
+    //     });
+    //     ok<Record<K, SplitCore<T>>>(proxied);
+    //     return proxied;
+    //   }
+    //
+    //   groupToMap<K extends string | number | symbol>(fn: MapFn<T, K>) {
+    //     const map = context.groupToMap(fn);
+    //     const get = map.get.bind(map);
+    //     map.get = (key) => {
+    //       return split(get(key), options);
+    //     };
+    //     ok<AsyncMap<K, SplitCore<T>>>(map);
+    //     return map;
+    //   }
+    //
+    //   call(that: unknown, ...args: unknown[]) {
+    //     return split<T>(context.call.bind(undefined, that, ...args), options);
+    //   }
+    //
+    //   bind(that: unknown, ...args: unknown[]) {
+    //     return split(context.bind(that, ...args), options);
+    //   }
+    // }
+    // return new Split();
   }
 }
