@@ -19,7 +19,16 @@ export function anAsyncThing<T>(
 ): TheAsyncThing<T, T> {
   let iterator: AsyncIterator<T, unknown, unknown>, promise: Promise<T>;
 
+  const symbols = async ? Object.getOwnPropertySymbols(async) : [];
+  const symbolOptions = {};
+  for (const symbol of symbols) {
+    const descriptor = Object.getOwnPropertyDescriptor(async, symbol);
+    if (!descriptor) continue;
+    Object.defineProperty(symbolOptions, symbol, descriptor);
+  }
+
   const thing: TheAsyncThing<T, T> = {
+    ...symbolOptions,
     async then(resolve, reject) {
       return getPromise().then(resolve, reject);
     },

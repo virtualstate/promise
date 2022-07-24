@@ -11,7 +11,17 @@ export function aSyncThing<T, I extends Iterable<T>>(sync: I): TheSyncThing<T>;
 export function aSyncThing<T>(sync: T): TheSyncThing<T>;
 export function aSyncThing<T>(sync: T): TheSyncThing {
   let iterator: Iterator<unknown, unknown, unknown>;
+
+  const symbols = sync ? Object.getOwnPropertySymbols(sync) : [];
+  const symbolOptions = {};
+  for (const symbol of symbols) {
+    const descriptor = Object.getOwnPropertyDescriptor(sync, symbol);
+    if (!descriptor) continue;
+    Object.defineProperty(symbolOptions, symbol, descriptor);
+  }
+
   const thing: TheSyncThing & Iterable<unknown> = {
+    ...symbolOptions,
     async then(resolve, reject) {
       void reject;
       return resolve(isIterable(sync) ? sync : makeIterableFromThing());

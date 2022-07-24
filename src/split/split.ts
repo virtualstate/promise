@@ -107,6 +107,7 @@ export function split<T>(
 
     function call(that?: unknown, ...args: unknown[]): AsyncIterable<T[]> {
       return {
+        ...symbolOptions,
         [Symbol.asyncIterator]: asSnapshot,
       };
 
@@ -245,6 +246,7 @@ export function split<T>(
 
     function getAsyncIterableOutput<Z>(target: Push<Z>): AsyncIterable<Z> {
       return {
+        ...symbolOptions,
         async *[Symbol.asyncIterator]() {
           const promise = start();
           yield* target;
@@ -254,9 +256,7 @@ export function split<T>(
     }
     function getOutput<Z>(target: Push<Z>): TheAsyncThing<Z> {
       const async = getAsyncIterableOutput(target);
-      const result = anAsyncThing(async);
-      defineSymbols(result);
-      return result;
+      return anAsyncThing(async);
     }
 
     function atTarget(index: number) {
@@ -348,6 +348,7 @@ export function split<T>(
 
     function find(fn: FilterFn<T>): TheAsyncThing<T> {
       return anAsyncThing({
+        ...symbolOptions,
         async *[Symbol.asyncIterator]() {
           for await (const [first] of filter(fn)) {
             yield first;
@@ -358,6 +359,7 @@ export function split<T>(
 
     function findIndex(fn: FilterFn<T>): TheAsyncThing<number> {
       return anAsyncThing({
+        ...symbolOptions,
         async *[Symbol.asyncIterator]() {
           for await (const snapshot of source) {
             yield snapshot.findIndex(fn);
@@ -368,6 +370,7 @@ export function split<T>(
 
     function every(fn: FilterFn<T>): TheAsyncThing<boolean> {
       return anAsyncThing({
+        ...symbolOptions,
         async *[Symbol.asyncIterator]() {
           let yielded = false;
           for await (const snapshot of source) {
@@ -444,6 +447,7 @@ export function split<T>(
 
     function includes(search: T, fromIndex?: number): TheAsyncThing<boolean> {
       return anAsyncThing({
+        ...symbolOptions,
         async *[Symbol.asyncIterator]() {
           let yielded = false;
           for await (const snapshot of source) {
@@ -565,6 +569,7 @@ export function split<T>(
         },
         has(key: K): TheAsyncThing<boolean> {
           return anAsyncThing({
+            ...symbolOptions,
             async *[Symbol.asyncIterator](): AsyncIterator<boolean> {
               let yielded = false;
               for await (const snapshot of grouped[key]) {
@@ -715,7 +720,10 @@ export function split<T>(
             other: SplitInput<M>,
             otherOptions?: TypedSplitOptions<M> | SplitOptions
         ) {
-          return split(context.push(other), otherOptions ?? options);
+          return split(context.push(other), {
+            ...options,
+            ...otherOptions
+          });
         },
       },
       at: {
