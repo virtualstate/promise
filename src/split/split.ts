@@ -627,7 +627,7 @@ export function split<T>(
 
   function defineSymbols(object: unknown) {
     for (const symbol of symbols) {
-      const descriptor = Object.getOwnPropertyDescriptor(symbols, symbol);
+      const descriptor = Object.getOwnPropertyDescriptor(symbolOptions, symbol);
       if (!descriptor) continue;
       Object.defineProperty(object, symbol, descriptor);
     }
