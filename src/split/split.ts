@@ -57,6 +57,13 @@ export function split<T>(
       ok(options.is(value));
     }
   }
+  const symbols = options ? Object.getOwnPropertySymbols(options) : [];
+  const symbolOptions = {};
+  for (const symbol of symbols) {
+    const descriptor = Object.getOwnPropertyDescriptor(options, symbol);
+    if (!descriptor) continue;
+    Object.defineProperty(symbolOptions, symbol, descriptor);
+  }
 
   const context = createSplitContext<T>(input, options);
   const async = anAsyncThing(context);
@@ -247,7 +254,9 @@ export function split<T>(
     }
     function getOutput<Z>(target: Push<Z>): TheAsyncThing<Z> {
       const async = getAsyncIterableOutput(target);
-      return anAsyncThing(async);
+      const result = anAsyncThing(async);
+      defineSymbols(result);
+      return result;
     }
 
     function atTarget(index: number) {
@@ -611,19 +620,17 @@ export function split<T>(
     };
   }
 
+  function defineSymbols(object: unknown) {
+    for (const symbol of symbols) {
+      const descriptor = Object.getOwnPropertyDescriptor(symbols, symbol);
+      if (!descriptor) continue;
+      Object.defineProperty(object, symbol, descriptor);
+    }
+  }
+
   function defineProperties(fn: unknown): asserts fn is SplitCore<T> {
     // const source = fn;
-    const symbols = options ? Object.getOwnPropertySymbols(options) : [];
-
-    const symbolOptions = {};
-
-    for (const symbol of symbols) {
-      const descriptor = Object.getOwnPropertyDescriptor(options, symbol);
-      if (!descriptor) continue;
-      Object.defineProperty(fn, symbol, descriptor);
-      Object.defineProperty(symbolOptions, symbol, descriptor);
-    }
-
+    defineSymbols(fn);
     Object.defineProperties(fn, {
       [Symbol.asyncIterator]: {
         value: context[Symbol.asyncIterator],
