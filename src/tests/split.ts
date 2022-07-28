@@ -967,3 +967,44 @@ import {isArray, isAsyncIterable} from "../is";
 
 
 }
+
+
+{
+  const input = {
+    async * [Symbol.asyncIterator]() {
+      yield [1, 2, 3];
+      yield [4, 5, 6];
+      yield [7, 8, 9];
+    }
+  }
+  const mask = {
+    async * [Symbol.asyncIterator]() {
+      yield false;
+      yield [true, false, true];
+      yield true;
+    }
+  }
+
+  const result = split(input).mask(mask);
+
+  const seen: unknown[] = [];
+
+  for await (const snapshot of result) {
+    ok(isArray(snapshot));
+    console.log({ snapshot });
+    seen.push(...snapshot);
+  }
+
+  console.log({ seen });
+  ok(!seen.includes(1));
+  ok(!seen.includes(2));
+  ok(!seen.includes(3));
+  ok(seen.includes(4));
+  ok(!seen.includes(5));
+  ok(seen.includes(6));
+  ok(seen.includes(7));
+  ok(seen.includes(8));
+  ok(seen.includes(9));
+
+
+}
