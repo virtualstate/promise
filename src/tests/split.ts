@@ -1,7 +1,7 @@
 import { split } from "../split";
 import { ok } from "../like";
 import { union } from "@virtualstate/union";
-import { isAsyncIterable } from "../is";
+import {isArray, isAsyncIterable} from "../is";
 
 {
   const [a, b, c] = split({
@@ -926,4 +926,44 @@ import { isAsyncIterable } from "../is";
   console.log({ total, totalSnapshot });
   ok(total === 3);
   ok(totalSnapshot === 6); // 1 + 2 + 3
+}
+
+{
+  const input = {
+    async * [Symbol.asyncIterator]() {
+      yield [1, 2, 3];
+      yield [4, 5, 6];
+      yield [7, 8, 9];
+    }
+  }
+  const mask = {
+    async * [Symbol.asyncIterator]() {
+      yield false;
+      yield true;
+      yield true;
+    }
+  }
+
+  const result = split(input).mask(mask);
+
+  const seen: unknown[] = [];
+
+  for await (const snapshot of result) {
+    ok(isArray(snapshot));
+    console.log({ snapshot });
+    seen.push(...snapshot);
+  }
+
+  console.log({ seen });
+  ok(!seen.includes(1));
+  ok(!seen.includes(2));
+  ok(!seen.includes(3));
+  ok(seen.includes(4));
+  ok(seen.includes(5));
+  ok(seen.includes(6));
+  ok(seen.includes(7));
+  ok(seen.includes(8));
+  ok(seen.includes(9));
+
+
 }

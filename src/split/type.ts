@@ -84,6 +84,7 @@ export interface SplitAsyncIterable<T>
   reverse(): AsyncIterable<T[]>;
   concat(...args: SplitConcatSyncInput<T>[]): AsyncIterable<T[]>;
   concat(other: SplitConcatInput<T>): AsyncIterable<T[]>;
+  mask(mask: AsyncIterable<unknown>): AsyncIterable<T[]>;
   push(other: SplitInput<T>): AsyncIterable<T[]>;
   push<M>(other: SplitInput<M>): AsyncIterable<(M | T)[]>;
   call(this: unknown, ...args: unknown[]): AsyncIterable<T[]>;
@@ -111,6 +112,7 @@ export interface Split<T> extends SplitAsyncIterable<T>, Promise<T[]> {
   take(count: number): Split<T>;
   concat(...args: T[]): Split<T>;
   concat(other: SplitConcatInput<T>): Split<T>;
+  mask(mask: AsyncIterable<unknown>): Split<T>;
   copyWithin(target: number, start?: number, end?: number): Split<T>;
   entries(): Split<[number, T]>;
   flatMap<M>(

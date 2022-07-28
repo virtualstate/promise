@@ -55,3 +55,7 @@ export function isFulfilled<T>(
 export function isPromise<T>(value: unknown): value is Promise<T> {
   return isLike<Promise<unknown>>(value) && typeof value.then === "function";
 }
+
+export function isArray<T = unknown>(value: unknown): value is T[] {
+  return Array.isArray(value);
+}
