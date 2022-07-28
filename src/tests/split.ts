@@ -938,9 +938,9 @@ import {isArray, isAsyncIterable} from "../is";
   }
   const mask = {
     async * [Symbol.asyncIterator]() {
-      yield false;
-      yield true;
-      yield true;
+      yield [false, true, false];
+      yield [true, false, true];
+      yield [false, false, true];
     }
   }
 
@@ -956,13 +956,13 @@ import {isArray, isAsyncIterable} from "../is";
 
   console.log({ seen });
   ok(!seen.includes(1));
-  ok(!seen.includes(2));
+  ok(seen.includes(2));
   ok(!seen.includes(3));
   ok(seen.includes(4));
-  ok(seen.includes(5));
+  ok(!seen.includes(5));
   ok(seen.includes(6));
-  ok(seen.includes(7));
-  ok(seen.includes(8));
+  ok(!seen.includes(7));
+  ok(!seen.includes(8));
   ok(seen.includes(9));
 
 

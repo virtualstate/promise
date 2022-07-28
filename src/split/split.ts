@@ -593,59 +593,24 @@ export function split<T>(
     }
 
     async function *synchronize<L, R>(left: AsyncIterable<L>, right: AsyncIterable<R>): AsyncIterable<[L, R]> {
-      type Indexed<Z> = [number, Z];
+      let leftResult: IteratorResult<L>,
+          rightResult: IteratorResult<R>;
 
-      let yielded = -1;
+      const leftIterator = left[Symbol.asyncIterator]();
+      const rightIterator = right[Symbol.asyncIterator]();
 
-      const leftSnapshots = new Map<number, L>();
-      const rightSnapshots = new Map<number, R>();
-
-      for await (const snapshot of union<Indexed<unknown>>([indexed(left, leftSnapshots), indexed(right, rightSnapshots)])) {
-         yield * process(snapshot);
-      }
-
-      function * process(snapshot: Indexed<unknown>[]): Iterable<[L, R]> {
-        const [left, right] = snapshot;
-
-        const indexes: number[] = [];
-
-        if (isLike<Indexed<L>>(left)) {
-          if (yielded < left[0]) {
-            indexes.push(left[0]);
-            leftSnapshots.set(left[0], left[1]);
-          }
+      do {
+        [leftResult, rightResult] = await Promise.all([
+            leftIterator.next(),
+            rightIterator.next()
+        ]);
+        if (isIteratorYieldResult(leftResult) && isIteratorYieldResult(rightResult)) {
+          yield [leftResult.value, rightResult.value];
         }
+      } while (!leftResult.done && !rightResult.done);
 
-        if (isLike<Indexed<R>>(right)) {
-          if (yielded < right[0]) {
-            indexes.push(right[0]);
-            rightSnapshots.set(right[0], right[1]);
-          }
-        }
-
-        for (const index of indexes.sort()) {
-          if (!leftSnapshots.has(index)) continue;
-          if (!rightSnapshots.has(index)) continue;
-
-          const leftSnapshot = leftSnapshots.get(index);
-          const rightSnapshot = rightSnapshots.get(index);
-
-          yield [leftSnapshot, rightSnapshot];
-
-          leftSnapshots.delete(index);
-          rightSnapshots.delete(index);
-          yielded = index;
-        }
-      }
-
-      async function *indexed<Z>(input: AsyncIterable<Z>, snapshots: Map<number, Z>): AsyncIterable<Indexed<Z>> {
-        let index = -1;
-        for await (const snapshot of input) {
-          index += 1;
-          snapshots.set(index, snapshot);
-          yield [index, snapshot];
-        }
-      }
+      await leftIterator.return?.();
+      await rightIterator.return?.();
     }
 
     function mask(input: AsyncIterable<unknown>) {
@@ -656,7 +621,7 @@ export function split<T>(
               mask
           ] of synchronize(source, input)) {
             if (isArray(mask)) {
-              return Object.entries(mask)
+              yield Object.entries(mask)
                   .filter(([, include]) => include)
                   .map(([index]) => snapshot[+index]);
             } else if (mask) {
