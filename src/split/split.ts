@@ -219,11 +219,17 @@ export function split<T>(
       }
       function* inner() {
         yield mainTarget?.push(snapshot);
-        for (const [index, value] of Object.entries(snapshot)) {
-          const target = targets.get(+index);
-          if (!target) continue;
+
+        for (const [index, target] of targets.entries()) {
+          if (index >= snapshot.length) {
+            continue;
+          }
+          if (index < 0 && Math.abs(index) > snapshot.length) {
+            continue;
+          }
+          const value = snapshot.at(index); // Using at here allows using -1 as an index
           assert(value);
-          yield target.push(value);
+          target.push(value);
         }
       }
     }

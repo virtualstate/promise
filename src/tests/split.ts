@@ -1008,3 +1008,34 @@ import {isArray, isAsyncIterable} from "../is";
 
 
 }
+
+{
+  const last = await split({
+    async *[Symbol.asyncIterator]() {
+      yield [1, 2, 3];
+      yield [4, 5, 6];
+    },
+  }).at(-1);
+  console.log({ last });
+  ok(last === 6);
+}
+{
+  const middle = await split({
+    async *[Symbol.asyncIterator]() {
+      yield [1, 2, 3];
+      yield [4, 5, 6];
+    },
+  }).at(-2);
+  console.log({ middle });
+  ok(middle === 5);
+}
+{
+  const first = await split({
+    async *[Symbol.asyncIterator]() {
+      yield [1, 2, 3];
+      yield [4, 5, 6];
+    },
+  }).at(-3);
+  console.log({ first });
+  ok(first === 4);
+}
