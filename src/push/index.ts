@@ -3,7 +3,7 @@ import { defer, Deferred } from "../defer";
 import { ok } from "../like";
 import {anAsyncThing} from "../the-thing";
 
-interface PushFn<T> extends Push<T>, Promise<T> {
+export interface PushFn<T> extends Push<T>, Promise<T> {
   (value: T): unknown;
 }
 
