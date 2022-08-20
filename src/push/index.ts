@@ -1,8 +1,9 @@
 import { WeakLinkedList } from "./weak-linked-list";
 import { defer, Deferred } from "../defer";
 import { ok } from "../like";
+import {anAsyncThing} from "../the-thing";
 
-interface PushFn<T> extends Push<T> {
+interface PushFn<T> extends Push<T>, Promise<T> {
   (value: T): unknown;
 }
 
@@ -12,6 +13,7 @@ export function p<T>(options?: PushOptions): PushFn<T> {
 
 export function createPushFn<T>(options?: PushOptions) {
   const target = new Push<T>(options);
+  const async = anAsyncThing(target);
   const unknown: object = function push(value: T) {
     return target.push(value);
   }
@@ -44,6 +46,15 @@ export function createPushFn<T>(options?: PushOptions) {
         get() {
           return target.open;
         }
+      },
+      then: {
+        value: async.then.bind(async)
+      },
+      catch: {
+        value: async.catch.bind(async)
+      },
+      finally: {
+        value: async.finally.bind(async)
       }
     })
   }

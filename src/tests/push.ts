@@ -174,3 +174,19 @@ await withCreator(() => p());
   }
 
 }
+
+{
+  const push = p();
+
+  push(1);
+  push(2);
+  push(3);
+
+  push.close();
+
+  const result = await push;
+
+  console.log({ result });
+  ok(result === 3);
+
+}
