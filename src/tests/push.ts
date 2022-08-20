@@ -1,4 +1,4 @@
-import { Push } from "../push";
+import { p, Push } from "../push";
 import { ok } from "../like";
 import { isIteratorYieldResult, isRejected } from "../is";
 import { anAsyncThing } from "../the-thing";
@@ -151,4 +151,20 @@ import { anAsyncThing } from "../the-thing";
     console.log({ snapshot });
     ok(snapshot === 1 || snapshot === 2 || snapshot === 3);
   }
+}
+
+{
+  const push = p();
+
+  push(1);
+  push(2);
+  push(3);
+
+  push.close();
+
+  for await (const snapshot of push) {
+    console.log({ snapshot });
+    ok(snapshot === 1 || snapshot === 2 || snapshot === 3);
+  }
+
 }

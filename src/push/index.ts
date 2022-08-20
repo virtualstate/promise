@@ -2,6 +2,55 @@ import { WeakLinkedList } from "./weak-linked-list";
 import { defer, Deferred } from "../defer";
 import { ok } from "../like";
 
+interface PushFn<T> extends Push<T> {
+  (value: T): unknown;
+}
+
+export function p<T>(options?: PushOptions): PushFn<T> {
+  return createPushFn(options);
+}
+
+export function createPushFn<T>(options?: PushOptions) {
+  const target = new Push<T>(options);
+  const unknown: object = function push(value: T) {
+    return target.push(value);
+  }
+  define(unknown);
+  return unknown;
+
+  function define(push: object): asserts push is PushFn<T> {
+    Object.defineProperties(push, {
+      [Symbol.asyncIterator]: {
+        value: target[Symbol.asyncIterator].bind(target)
+      },
+      push: {
+        value: target.push.bind(target)
+      },
+      close: {
+        value: target.close.bind(target)
+      },
+      throw: {
+        value: target.throw.bind(target)
+      },
+      break: {
+        value: target.break.bind(target)
+      },
+      active: {
+        get() {
+          return target.active;
+        }
+      },
+      open: {
+        get() {
+          return target.open;
+        }
+      }
+    })
+  }
+
+
+}
+
 export interface PushOptions {
   keep?: boolean;
 }
