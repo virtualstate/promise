@@ -14,6 +14,7 @@ try {
   await import("./walk");
   await import("./iterable-lifecycle");
   await import("./blend");
+  await import("./line");
 } catch (error) {
   if (error instanceof AggregateError) {
     console.error(error.errors);

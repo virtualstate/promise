@@ -3,9 +3,21 @@ import { defer, Deferred } from "../defer";
 import { ok } from "../like";
 import {anAsyncThing} from "../the-thing";
 
+const Pointer = Symbol.for("@virtualstate/promise/Push/asyncIterator/pointer");
+
+export interface PushAsyncIteratorOptions extends Record<symbol, unknown> {
+  /**
+   * @internal
+   */
+  [Pointer]?: boolean
+}
+
 export interface PushFn<T> extends Push<T>, Promise<T> {
   (value: T): unknown;
 }
+
+export type PushIteratorYieldResult<T> = IteratorYieldResult<T> & Record<symbol, unknown>
+export type PushIteratorResult<T> = IteratorResult<T> | PushIteratorYieldResult<T>
 
 export function p<T>(options?: PushOptions): PushFn<T> {
   return createPushFn(options);
@@ -82,7 +94,7 @@ export interface PushWriter<T = unknown> {
 }
 
 export class Push<T = unknown> implements AsyncIterable<T>, PushWriter<T> {
-  private values = new WeakLinkedList<PushPair<T>>();
+  protected values = new WeakLinkedList<PushPair<T>>();
 
   private pointer: object = {};
   private previous: object | undefined = undefined;
@@ -210,7 +222,7 @@ export class Push<T = unknown> implements AsyncIterable<T>, PushWriter<T> {
     }
   };
 
-  [Symbol.asyncIterator](): AsyncIterator<T> {
+  [Symbol.asyncIterator](options?: PushAsyncIteratorOptions): AsyncIterator<T> {
     // Setting hold to undefined clears the initial pointer
     // available meaning this push instance's weak list can
     // start to forget deferred values
@@ -226,7 +238,7 @@ export class Push<T = unknown> implements AsyncIterable<T>, PushWriter<T> {
     const values = this.values;
     const resolved = new WeakSet();
 
-    const next = async (): Promise<IteratorResult<T>> => {
+    const next = async (): Promise<PushIteratorResult<T>> => {
       if (this.complete || !pointer || pointer === this.closed) {
         return clear();
       }
@@ -244,7 +256,11 @@ export class Push<T = unknown> implements AsyncIterable<T>, PushWriter<T> {
         return clear();
       }
       resolved.add(pointer);
-      return { done: false, value };
+      const result: PushIteratorYieldResult<T> = { done: false, value };
+      if (options?.[Pointer]) {
+        result[Pointer] = pointer;
+      }
+      return result;
     };
 
     const clear = (): IteratorResult<T> => {
