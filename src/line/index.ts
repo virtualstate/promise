@@ -37,13 +37,7 @@ export class Line<T = unknown> extends Push<T> {
         return {
             async next() {
                 if (!iterator) {
-                    let pointer;
-                    if (!line.open) {
-                        pointer = line.pointer;
-                    }
-                    iterator = line[Symbol.asyncIterator]({
-                        [Pointer]: pointer
-                    });
+                    iterator = line[Symbol.asyncIterator]();
                     let result;
                     do {
                         // "Load" our iterator... yeah, we want to reach the end.
@@ -75,10 +69,7 @@ export class Line<T = unknown> extends Push<T> {
 
     [Symbol.asyncIterator] = (options?: PushAsyncIteratorOptions): LineIterator<T> => {
         const { values } = this;
-        const iterator = asyncIterator.call(this,{
-            ...options,
-            [Pointer]: options?.[Pointer] || true,
-        });
+        let iterator: AsyncIterator<T>;
 
         const pointers: object[] = [];
 
@@ -93,6 +84,11 @@ export class Line<T = unknown> extends Push<T> {
             pointers.push(...this.resolvedPointers);
             index = -2;
             done = true;
+        } else {
+            iterator = asyncIterator.call(this,{
+                [Pointer]: true,
+                ...options
+            })
         }
 
         function getIndexDeferred(index: number) {
@@ -133,16 +129,14 @@ export class Line<T = unknown> extends Push<T> {
                     // If we don't have a deferred, we are adding to the end
                 }
                 if (done) {
-                    index = pointers.length;
-                    return { done: true, value: undefined };
+                    return this.return();
                 }
                 const result = await iterator.next();
                 if (result.done) {
                     done = true;
                 }
                 if (done) {
-                    index = pointers.length;
-                    return { done: true, value: undefined };
+                    return this.return();
                 }
                 if (isPushIteratorResult(result)) {
                     const pointer = result[Pointer];
@@ -168,10 +162,14 @@ export class Line<T = unknown> extends Push<T> {
                     done: false
                 };
             },
-            return() {
+            async return() {
                 done = true;
                 index = pointers.length;
-                return iterator.return?.();
+                if (iterator?.return) {
+                    await iterator.return();
+                }
+                iterator = undefined;
+                return { done: true, value: undefined }
             },
             async * [Symbol.asyncIterator]() {
                 let result;
