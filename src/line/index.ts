@@ -79,9 +79,11 @@ export class Line<T = unknown> extends Push<T> {
                     return { done: true, value: undefined };
                 }
                 const result = await iterator.next();
+                if (result.done) {
+                    done = true;
+                }
                 if (done) {
                     index = pointers.length;
-                    // done set while getting next
                     return { done: true, value: undefined };
                 }
                 if (isPushIteratorResult(result)) {
@@ -90,9 +92,6 @@ export class Line<T = unknown> extends Push<T> {
                     // The current length matches the next index
                     index = pointers.length;
                     pointers.push(pointer);
-                } else if (result.done) {
-                    done = true;
-                    index = pointers.length;
                 }
                 return result;
             },
@@ -111,10 +110,10 @@ export class Line<T = unknown> extends Push<T> {
                     done: false
                 };
             },
-            return(value) {
+            return() {
                 done = true;
                 index = pointers.length;
-                return iterator.return?.(value);
+                return iterator.return?.();
             },
             async * [Symbol.asyncIterator]() {
                 let result;
@@ -124,6 +123,7 @@ export class Line<T = unknown> extends Push<T> {
                         yield result.value
                     }
                 } while (!result.done);
+                await this.return();
             }
         }
 
