@@ -1,8 +1,9 @@
-import {Push, PushIteratorYieldResult, PushOptions} from "../push";
+import {Push, PushAsyncIteratorOptions, PushIteratorYieldResult, PushOptions} from "../push";
 import {isIteratorYieldResult} from "../is";
 import {ok} from "../like";
 
 const Pointer = Symbol.for("@virtualstate/promise/Push/asyncIterator/pointer");
+const ReverseAsyncIterator = Symbol.for("@virtualstate/promise/Push/reverseAsyncIterator");
 
 function isPushIteratorResult<T>(value: unknown): value is PushIteratorYieldResult<T> & { [Pointer]?: object } {
     return isIteratorYieldResult(value);
@@ -19,6 +20,10 @@ export interface LineIterator<T> extends AsyncIterableIterator<T> {
  */
 export class Line<T = unknown> extends Push<T> {
 
+    static reverse<R = unknown>(line: Line<R>) {
+        return line[ReverseAsyncIterator]();
+    }
+
     constructor(options?: Omit<PushOptions, "keep">) {
         super({
             keep: true,
@@ -26,16 +31,80 @@ export class Line<T = unknown> extends Push<T> {
         });
     }
 
-    [Symbol.asyncIterator] = (): LineIterator<T> => {
+    [ReverseAsyncIterator] = (): AsyncIterableIterator<T> => {
+        let iterator: LineIterator<T>;
+        const line = this;
+        return {
+            async next() {
+                if (!iterator) {
+                    let pointer;
+                    if (!line.open) {
+                        pointer = line.pointer;
+                    }
+                    iterator = line[Symbol.asyncIterator]({
+                        [Pointer]: pointer
+                    });
+                    let result;
+                    do {
+                        // "Load" our iterator... yeah, we want to reach the end.
+                        // If we never reach the end, we can not read from the end
+                        // This only applies to async iterators
+                        //
+                        // If you don't want to go through this loading and manually
+                        // control the cycle of the iterator,
+                        result = await iterator.next();
+                    } while (!result.done);
+                }
+                return iterator.previous();
+            },
+            async return() {
+                return iterator?.return?.();
+            },
+            async *[Symbol.asyncIterator]() {
+                let result;
+                do {
+                    result = await this.next();
+                    if (isIteratorYieldResult<T>(result)) {
+                        yield result.value;
+                    }
+                } while (!result.done);
+                await this.return?.();
+            }
+        }
+    }
+
+    [Symbol.asyncIterator] = (options?: PushAsyncIteratorOptions): LineIterator<T> => {
         const { values } = this;
         const iterator = asyncIterator.call(this,{
-            [Pointer]: true
+            ...options,
+            [Pointer]: options?.[Pointer] || true,
         });
 
         const pointers: object[] = [];
 
         let index: number = -1;
         let done = false;
+
+        // If we are already closed, we can make a jump
+        /**
+         * @experimental it works though
+         */
+        if (!this.open) {
+            let pointer = this.resolvedPointer;
+            ok(pointer)
+            let result
+            do {
+                result = this.values.get(pointer);
+                if (result.next) {
+                    pointers.push(pointer);
+                    pointer = result.next;
+                } else {
+                    pointer = undefined;
+                }
+            } while (pointer);
+            index = -2;
+            done = true;
+        }
 
         function getIndexDeferred(index: number) {
             const pointer = pointers[index];

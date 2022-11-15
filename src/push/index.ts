@@ -9,7 +9,7 @@ export interface PushAsyncIteratorOptions extends Record<symbol, unknown> {
   /**
    * @internal
    */
-  [Pointer]?: boolean
+  [Pointer]?: boolean | object
 }
 
 export interface PushFn<T> extends Push<T>, Promise<T> {
@@ -94,19 +94,66 @@ export interface PushWriter<T = unknown> {
 }
 
 export class Push<T = unknown> implements AsyncIterable<T>, PushWriter<T> {
+  /**
+   * @internal
+   * @protected
+   */
   protected values = new WeakLinkedList<PushPair<T>>();
 
-  private pointer: object = {};
+  /**
+   * @internal
+   * @protected
+   */
+  protected pointer: object = {};
+  /**
+   * @internal
+   * @private
+   */
   private previous: object | undefined = undefined;
+  /**
+   * @internal
+   * @private
+   */
   private closed: object | undefined = undefined;
+  /**
+   * @internal
+   * @private
+   */
   private complete = false;
+  /**
+   * @internal
+   * @private
+   */
   private microtask: object | undefined = undefined;
 
+  /**
+   * @internal
+   * @private
+   */
   private hold: object;
+
+  /**
+   * @internal
+   * @private
+   */
+  protected get resolvedPointer() {
+    // Setting hold to undefined clears the initial pointer
+    // available meaning this push instance's weak list can
+    // start to forget deferred values
+    //
+    // If a pointer is available in sameMicrotask, or
+    // an iterator as a pointer still, the pointers
+    // value will still be available
+    return this.hold ?? this.microtask ?? this.pointer;
+  }
 
   // async iterators count is just a possible number, it doesn't
   // represent what is actually available in memory
   // some iterators may be dropped without reducing this value
+  /**
+   * @internal
+   * @private
+   */
   private asyncIterators: number = 0;
 
   get active() {
@@ -223,14 +270,17 @@ export class Push<T = unknown> implements AsyncIterable<T>, PushWriter<T> {
   };
 
   [Symbol.asyncIterator](options?: PushAsyncIteratorOptions): AsyncIterator<T> {
-    // Setting hold to undefined clears the initial pointer
-    // available meaning this push instance's weak list can
-    // start to forget deferred values
-    //
-    // If a pointer is available in sameMicrotask, or
-    // an iterator as a pointer still, the pointers
-    // value will still be available
-    let pointer = this.hold ?? this.microtask ?? this.pointer;
+    let pointer = this.resolvedPointer;
+
+    let optionsPointer = options?.[Pointer];
+    if (typeof optionsPointer === "object" && this.values.has(optionsPointer)) {
+      pointer = optionsPointer;
+    }
+    if (optionsPointer) {
+      // Don't keep the external pointer if we don't need to
+      optionsPointer = true;
+    }
+
     this.asyncIterators += 1;
     if (!this.options?.keep) {
       this.hold = undefined;
@@ -257,7 +307,7 @@ export class Push<T = unknown> implements AsyncIterable<T>, PushWriter<T> {
       }
       resolved.add(pointer);
       const result: PushIteratorYieldResult<T> = { done: false, value };
-      if (options?.[Pointer]) {
+      if (optionsPointer) {
         result[Pointer] = pointer;
       }
       return result;

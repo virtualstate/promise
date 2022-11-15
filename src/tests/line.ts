@@ -24,7 +24,7 @@ import {ok} from "../like";
 
     // 1, 2, 3
     for await (const value of iterator) {
-        console.log(value);
+        console.log({ value });
     }
 
     ok((await iterator.next()).done);
@@ -34,7 +34,7 @@ import {ok} from "../like";
 
     // 2, 3
     for await (const value of iterator) {
-        console.log(value);
+        console.log({ value });
     }
 
     async function start() {
@@ -94,5 +94,24 @@ import {ok} from "../like";
     ok((await iterator.next()).value === expected);
     ok((await iterator.next()).value === expected + 1);
     ok((await iterator.next()).done);
+
+    let reversed = Line.reverse(line);
+
+    for await (const value of reversed) {
+        console.log({ value });
+    }
+
+    reversed = Line.reverse(line);
+
+    ok((await reversed.next()).value === expected + 1);
+    ok((await reversed.next()).value === expected);
+    ok((await reversed.next()).value === 3);
+    ok((await reversed.next()).value === 2);
+    ok((await reversed.next()).value === 1);
+    ok((await reversed.next()).done);
+
+
+
+
 
 }

@@ -2,6 +2,7 @@ import { ok } from "../like";
 
 interface AbstractMap<T> {
   get(index: object): T | undefined;
+  has(index: object): boolean;
   set(index: object, value: T): void;
 }
 
@@ -12,6 +13,7 @@ export interface Node<T> {
 
 export interface LinkedList<T> {
   get(pointer: object): Node<T>;
+  has(pointer: object): boolean;
   insert(after: object, pointer: object, value: T): void;
   clear(): void;
 }
@@ -25,6 +27,10 @@ export abstract class AbstractLinkedList<T> implements LinkedList<T> {
 
   get(pointer: object): Node<T> | undefined {
     return this._map.get(pointer);
+  }
+
+  has(pointer: object): boolean {
+    return this._map.has(pointer);
   }
 
   insert(after: object, pointer: object, value: T): void {
