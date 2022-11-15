@@ -136,7 +136,7 @@ export class Push<T = unknown> implements AsyncIterable<T>, PushWriter<T> {
    * @internal
    * @private
    */
-  protected get resolvedPointer() {
+  private get resolvedPointer() {
     // Setting hold to undefined clears the initial pointer
     // available meaning this push instance's weak list can
     // start to forget deferred values
@@ -145,6 +145,27 @@ export class Push<T = unknown> implements AsyncIterable<T>, PushWriter<T> {
     // an iterator as a pointer still, the pointers
     // value will still be available
     return this.hold ?? this.microtask ?? this.pointer;
+  }
+
+  /**
+   * @internal
+   * @protected
+   */
+  protected get resolvedPointers() {
+    const pointers = [];
+    let pointer = this.resolvedPointer;
+    ok(pointer)
+    let result
+    do {
+      result = this.values.get(pointer);
+      if (result.next) {
+        pointers.push(pointer);
+        pointer = result.next;
+      } else {
+        pointer = undefined;
+      }
+    } while (pointer);
+    return pointers;
   }
 
   // async iterators count is just a possible number, it doesn't

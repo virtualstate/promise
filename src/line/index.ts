@@ -90,18 +90,7 @@ export class Line<T = unknown> extends Push<T> {
          * @experimental it works though
          */
         if (!this.open) {
-            let pointer = this.resolvedPointer;
-            ok(pointer)
-            let result
-            do {
-                result = this.values.get(pointer);
-                if (result.next) {
-                    pointers.push(pointer);
-                    pointer = result.next;
-                } else {
-                    pointer = undefined;
-                }
-            } while (pointer);
+            pointers.push(...this.resolvedPointers);
             index = -2;
             done = true;
         }
