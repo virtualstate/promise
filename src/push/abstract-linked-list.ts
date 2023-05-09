@@ -12,7 +12,7 @@ export interface Node<T> {
 }
 
 export interface LinkedList<T> {
-  get(pointer: object): Node<T>;
+  get(pointer: object): Node<T> | undefined;
   has(pointer: object): boolean;
   insert(after: object, pointer: object, value: T): void;
   clear(): void;
