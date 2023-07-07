@@ -25,7 +25,7 @@ export type PromiseTuple<TArgs extends PromiseArgTuple<unknown>> =
     ? SinglePromiseTuple<TArgs[0]>
     : SinglePromiseTuple<TArgs>;
 export type PromiseTupleIntermediateArray<
-  RA extends Record<number, unknown> & { length: number }
+  RA extends { length: number }
 > = {
   [K in keyof RA]: K extends `${number}` | number ? RA[K] | undefined : RA[K];
 } & { length: RA["length"] };
