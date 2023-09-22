@@ -290,7 +290,7 @@ export class Push<T = unknown> implements AsyncIterable<T>, PushWriter<T> {
     }
   };
 
-  [Symbol.asyncIterator](options?: PushAsyncIteratorOptions): AsyncIterator<T> {
+  [Symbol.asyncIterator](options?: PushAsyncIteratorOptions): AsyncIterableIterator<T> {
     let pointer = this.resolvedPointer;
 
     let optionsPointer = options?.[Pointer];
@@ -360,11 +360,16 @@ export class Push<T = unknown> implements AsyncIterable<T>, PushWriter<T> {
       return { done: true, value: undefined };
     };
 
-    return {
+    const asyncIterator: AsyncIterableIterator<T> = {
       next,
       async return() {
         return clear();
       },
+      [Symbol.asyncIterator]() {
+        return asyncIterator;
+      }
     };
+
+    return asyncIterator;
   }
 }
