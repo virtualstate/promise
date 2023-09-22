@@ -5,6 +5,10 @@ import {anAsyncThing} from "../the-thing";
 
 const Pointer = Symbol.for("@virtualstate/promise/Push/asyncIterator/pointer");
 
+export interface PushAsyncIterableIterator<T> extends AsyncIterableIterator<T> {
+  clone(): PushAsyncIterableIterator<T>
+}
+
 export interface PushAsyncIteratorOptions extends Record<symbol, unknown> {
   /**
    * @internal
@@ -360,16 +364,39 @@ export class Push<T = unknown> implements AsyncIterable<T>, PushWriter<T> {
       return { done: true, value: undefined };
     };
 
-    const asyncIterator: AsyncIterableIterator<T> = {
+    function getClone(source: AsyncIterableIterator<T>): PushAsyncIterableIterator<T> {
+      return {
+        next() {
+          return source.next()
+        },
+        async return() {
+          // Explicitly not finishing the core iterable as this is a clone
+          return { done: true, value: undefined }
+        },
+        [Symbol.asyncIterator]() {
+          return iterator;
+        },
+        clone() {
+          // We could return iterator here, but better to give a new
+          // instance which is what would be expected here.
+          return getClone(source);
+        }
+      }
+    }
+
+    const iterator: PushAsyncIterableIterator<T> = {
       next,
       async return() {
         return clear();
       },
       [Symbol.asyncIterator]() {
-        return asyncIterator;
+        return iterator;
+      },
+      clone() {
+        return getClone(iterator);
       }
     };
 
-    return asyncIterator;
+    return iterator;
   }
 }
